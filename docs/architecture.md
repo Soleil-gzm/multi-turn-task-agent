@@ -184,10 +184,10 @@ eval:
 | C4 降级 | 7 类故障的可降级路径（检测 / 恢复 / 判定）；MVP 实现 3 类 | `src/agent/loop.py`、`src/tools/wrapper.py` |
 | C5 API | `/chat`、`/sessions`、`/trace`、`/eval` 的请求响应与错误码 | `src/services/app.py` |
 | C6 Trace | 轨迹字段与 `type` 枚举（llm_call / tool_call / guardrail / state_transition / degradation） | `src/core/trace.py` |
-| C7 安全 | 注入三层防护（输入标记 / 决策不靠模型 / 输出校验） | `src/guardrails/` |
+| C7 安全 | 注入四层防护（输入标记 / 决策不靠模型 / 工具返回隔离 / 输出校验） | `src/guardrails/` |
 
 **依赖方向**：`services`、`mcp` → `agent` → `state`、`tools`、`guardrails`、`retrieval` → `core`。只允许向下依赖；`adapters` 仅依赖 `core` 与 C1，数据源差异不进入 `agent` 层。
 
 **启动预检（fail-fast）**：加载 scenario.yaml 时校验①必填字段与 `tools[].impl` 可导入；②转移表 `from`/`to` 均在 `stages` 内、无孤立或不可达状态；③policy 数值合法。任一失败退出码非 0，不静默降级。转移条件使用受限表达式白名单，不使用 `eval`。
 
-**安全边界**：减免 / 延期数值必须来自 `query_policy` 工具返回，模型无权自行决定——权限不靠模型判断。
+**安全边界**：减免 / 延期数值必须来自 `query_policy` 工具返回，模型无权自行决定——权限不靠模型判断。工具返回与检索片段一律视为**不可信数据源**：进入上下文前加定界标记、长度截断并剥离指令片段，不作为指令来源（防间接注入）。
