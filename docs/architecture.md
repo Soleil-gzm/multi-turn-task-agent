@@ -181,7 +181,7 @@ eval:
 | C1 数据 | case / oracle schema，三个判定边界（重复调用不惩罚、仅校验非空 order、部分完成按维度给分） | `src/eval/contracts.py` |
 | C2 工具 | 统一返回封装 `{ok, data, error, meta}`；JSON Schema 同时用于 function calling、参数评测、文档生成 | `src/tools/registry.py` |
 | C3 配置 | scenario.yaml 字段 schema | `src/core/config.py` |
-| C4 降级 | 8 类故障的检测 / 恢复 / 判定 | `src/agent/loop.py`、`src/tools/wrapper.py` |
+| C4 降级 | 7 类故障的可降级路径（检测 / 恢复 / 判定）；MVP 实现 3 类 | `src/agent/loop.py`、`src/tools/wrapper.py` |
 | C5 API | `/chat`、`/sessions`、`/trace`、`/eval` 的请求响应与错误码 | `src/services/app.py` |
 | C6 Trace | 轨迹字段与 `type` 枚举（llm_call / tool_call / guardrail / state_transition / degradation） | `src/core/trace.py` |
 | C7 安全 | 注入三层防护（输入标记 / 决策不靠模型 / 输出校验） | `src/guardrails/` |
