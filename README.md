@@ -33,7 +33,7 @@
 > 框架搭建中，当前进度见 [Roadmap](docs/roadmap.md)。目标使用接口：
 
 ```bash
-make demo            # 运行多轮对话演示（SCENARIO=milktea 可切换场景）
+make demo            # 运行多轮对话演示（SCENARIO=risawoz | receivables | milktea 切换场景）
 make eval            # 运行评测并生成报告
 docker compose up    # 启动 API 服务
 ```

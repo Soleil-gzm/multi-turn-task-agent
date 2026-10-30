@@ -63,7 +63,7 @@ multi-turn-task-agent/
 状态表示为 `(stage, round_no, offer_state)` 三元组，而非单一线性阶段序列：
 
 | stage | 含义 | 子状态 offer_state |
-|---|---|---|
+| --- | --- | --- |
 | `INIT` | 初始化 | — |
 | `IDENTIFY` | 核实身份 / 单据 | — |
 | `NEGOTIATE` | 协商付款安排 | `probe` → `propose` → `counter` → `final` |
@@ -74,7 +74,7 @@ multi-turn-task-agent/
 **转移表（12 条，节选）**：
 
 | from | to | 触发条件 |
-|---|---|---|
+| --- | --- | --- |
 | INIT | IDENTIFY | 会话开始 |
 | IDENTIFY | NEGOTIATE | 身份与单据核对通过 |
 | IDENTIFY | ESCALATED | 核对失败 2 次 |
@@ -155,12 +155,12 @@ eval:
   metrics: [task_completion, policy_violation, info_accuracy, no_fabrication, efficiency]
 ```
 
-换场景 = 换一个 yaml + 一份数据 + 一份知识库。`milktea.yaml` 使用同一 schema，仅字段值不同（见 [场景设计](scenario-design.md#4-场景二milktea通用性验证)）。
+换场景 = 换一个 yaml + 一份数据 + 一份知识库。`milktea.yaml` 使用同一 schema，仅字段值不同（见 [场景设计](scenario-design.md#4-场景二milktea业务规则注入验证)）。
 
 ## 5. 六个业务工具
 
 | 工具 | 作用 | 评测价值 |
-|---|---|---|
+| --- | --- | --- |
 | `query_receivable` | 查合同/发票/账期/逾期天数 | 参数与返回可对照 oracle |
 | `check_invoice` | 查发票状态（已开/已抵扣/红冲） | 与客户主张交叉校验 |
 | `diff_statement` | 对账差异比对 | **可返回矛盾数据**，制造真实难度 |
