@@ -1,2 +1,7 @@
 PLAN.md
 搭建Gradio演示项目.md
+output/
+env/
+*.pyc
+__pycache__/
+data/**/generated/
