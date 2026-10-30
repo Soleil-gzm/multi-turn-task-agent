@@ -20,13 +20,15 @@ multi-turn-task-agent/
 │       ├── receivables/
 │       └── milktea/
 ├── src/
-│   ├── core/                   # 配置加载、注册表、日志、随机服务
+│   ├── core/                   # 配置加载、注册表、日志、随机服务、trace
+│   ├── adapters/               # 公开数据集适配器（risawoz 等）
 │   ├── state/                  # 状态机 + 持久化
 │   ├── tools/                  # 工具注册表 + 按场景分实现
 │   ├── retrieval/              # 手搓 BM25 + 向量 + RRF
 │   ├── agent/                  # ReAct 循环 + 上下文工程
-│   ├── guardrails/             # 政策校验 + 预算
+│   ├── guardrails/             # 输入检测 + 政策校验 + 预算
 │   ├── synthesis/              # 数据合成（声明式组装 + 概率生成 + 对话构建）
+│   ├── eval/                   # 契约校验 + 评测运行器
 │   ├── services/               # FastAPI
 │   └── mcp/                    # MCP 工具暴露
 ├── data/
@@ -169,3 +171,23 @@ eval:
 | `escalate` | 升级人工并附原因 | 异常分支的正确性 |
 
 > `diff_statement` 是评测区分度的关键来源：它让"账实不符"成为真实约束，而非伪工具。评测体系详见 [评测设计](eval-design.md)。
+
+## 6. 契约层与启动预检
+
+契约回答「具体长什么样」，完整定义见 [方案评审与细化 · 工程契约规范](方案评审与细化.md#2-工程契约规范)。代码只依赖契约，不依赖描述性文档：
+
+| 契约 | 内容 | 代码落位 |
+| --- | --- | --- |
+| C1 数据 | case / oracle schema，三个判定边界（重复调用不惩罚、仅校验非空 order、部分完成按维度给分） | `src/eval/contracts.py` |
+| C2 工具 | 统一返回封装 `{ok, data, error, meta}`；JSON Schema 同时用于 function calling、参数评测、文档生成 | `src/tools/registry.py` |
+| C3 配置 | scenario.yaml 字段 schema | `src/core/config.py` |
+| C4 降级 | 8 类故障的检测 / 恢复 / 判定 | `src/agent/loop.py`、`src/tools/wrapper.py` |
+| C5 API | `/chat`、`/sessions`、`/trace`、`/eval` 的请求响应与错误码 | `src/services/app.py` |
+| C6 Trace | 轨迹字段与 `type` 枚举（llm_call / tool_call / guardrail / state_transition / degradation） | `src/core/trace.py` |
+| C7 安全 | 注入三层防护（输入标记 / 决策不靠模型 / 输出校验） | `src/guardrails/` |
+
+**依赖方向**：`services`、`mcp` → `agent` → `state`、`tools`、`guardrails`、`retrieval` → `core`。只允许向下依赖；`adapters` 仅依赖 `core` 与 C1，数据源差异不进入 `agent` 层。
+
+**启动预检（fail-fast）**：加载 scenario.yaml 时校验①必填字段与 `tools[].impl` 可导入；②转移表 `from`/`to` 均在 `stages` 内、无孤立或不可达状态；③policy 数值合法。任一失败退出码非 0，不静默降级。转移条件使用受限表达式白名单，不使用 `eval`。
+
+**安全边界**：减免 / 延期数值必须来自 `query_policy` 工具返回，模型无权自行决定——权限不靠模型判断。
