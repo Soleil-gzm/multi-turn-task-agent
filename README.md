@@ -30,7 +30,7 @@
 
 ## 快速开始
 
-> 框架搭建中，当前进度见 [Roadmap](docs/roadmap.md)。目标使用接口：
+> **当前状态**：设计阶段完成（架构、场景、评测、契约均有文档），**代码尚未开始**。下一步是最小可跑版本（2 状态 / 3 工具 / 10 条评测），跑通后再按契约逐层扩充。各契约的实现状态见 [Roadmap · 契约状态](docs/roadmap.md#契约状态诚实反映代码进度每个里程碑更新)。目标使用接口：
 
 ```bash
 make demo            # 运行多轮对话演示（SCENARIO=risawoz | receivables | milktea 切换场景）
@@ -57,7 +57,7 @@ docker compose up    # 启动 API 服务
 | [场景设计](docs/scenario-design.md) | 场景选型、模块语义、政策边界、公开数据集接入、虚拟数据规范、合成管线 |
 | [评测设计](docs/eval-design.md) | 评测对象、三级评测方法、指标清单、可复现性条款 |
 | [方案评审与细化](docs/方案评审与细化.md) | 数据集选型对比、工程契约规范、数据流转与模块依赖、阶段与验收 |
-| [Roadmap](docs/roadmap.md) | 已完成 / 进行中 / 规划中 / 明确不做的取舍 |
+| [Roadmap](docs/roadmap.md) | 当前状态、契约状态、MVP / Stretch 分层、明确不做的取舍 |
 
 ---
 

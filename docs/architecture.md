@@ -186,6 +186,8 @@ eval:
 | C6 Trace | 轨迹字段与 `type` 枚举（llm_call / tool_call / guardrail / state_transition / degradation） | `src/core/trace.py` |
 | C7 安全 | 注入四层防护（输入标记 / 决策不靠模型 / 工具返回隔离 / 输出校验） | `src/guardrails/` |
 
+**契约的落地顺序**：契约不等于必须一次实现。代码按 Walking Skeleton（2 状态 / 3 工具 / 10 条 case）先行，再逐层补齐；每份契约当前处于「仅定义 / 部分实现 / 已实现」哪一档，以 [Roadmap · 契约状态](roadmap.md#契约状态诚实反映代码进度每个里程碑更新) 为准。
+
 **依赖方向**：`services`、`mcp` → `agent` → `state`、`tools`、`guardrails`、`retrieval` → `core`。只允许向下依赖；`adapters` 仅依赖 `core` 与 C1，数据源差异不进入 `agent` 层。
 
 **启动预检（fail-fast）**：加载 scenario.yaml 时校验①必填字段与 `tools[].impl` 可导入；②转移表 `from`/`to` 均在 `stages` 内、无孤立或不可达状态；③policy 数值合法。任一失败退出码非 0，不静默降级。转移条件使用受限表达式白名单，不使用 `eval`。
