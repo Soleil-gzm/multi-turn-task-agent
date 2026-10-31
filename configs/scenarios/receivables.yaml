@@ -1,0 +1,86 @@
+scenario:
+  id: receivables
+  display_name: 应收账款协商
+  version: 1
+
+goal:
+  success_criteria: "获取明确付款日期 + 金额"
+  max_rounds: 15
+  on_success: record_promise
+
+state_machine:
+  stages: [INIT, IDENTIFY, NEGOTIATE, CONFIRM, CLOSED, ESCALATED]
+  escalate_to: ESCALATED
+  offer_states:
+    NEGOTIATE: [probe, propose, counter, final]
+  transitions:
+    - from: INIT
+      to: IDENTIFY
+      when: "session_start"
+    - from: IDENTIFY
+      to: NEGOTIATE/probe
+      when: "identity_verified"
+    - from: IDENTIFY
+      to: ESCALATED
+      when: "verify_failures >= 2"
+    - from: NEGOTIATE/probe
+      to: NEGOTIATE/propose
+      when: "amount_informed"
+    - from: NEGOTIATE/propose
+      to: NEGOTIATE/counter
+      when: "counter_offer"
+    - from: NEGOTIATE/counter
+      to: NEGOTIATE/propose
+      when: "counter_exceeds_policy"
+    - from: NEGOTIATE/counter
+      to: NEGOTIATE/final
+      when: "counter_within_policy"
+    - from: NEGOTIATE/*
+      to: ESCALATED
+      when: "round > 5 or policy_violation_attempt >= 2"
+    - from: NEGOTIATE/final
+      to: CONFIRM
+      when: "offer_accepted"
+    - from: CONFIRM
+      to: CLOSED
+      when: "promise_recorded"
+    - from: CONFIRM
+      to: NEGOTIATE/propose
+      when: "customer_withdraw"
+    - from: "*"
+      to: ESCALATED
+      when: "redline_hit or customer_refuse"
+
+entities:
+  receivable: [contract_no, invoice_no, due_date, amount, overdue_days, status]
+
+tools:
+  - name: query_receivable
+    impl: src.tools.receivables.tools.query_receivable
+  - name: query_policy
+    impl: src.tools.receivables.tools.query_policy
+  - name: record_promise
+    impl: src.tools.receivables.tools.record_promise
+
+policy:
+  max_installments: 3
+  max_extension_days: 30
+  max_waiver_ratio: 0.10
+  forbidden_patterns: ["威胁", "起诉你", "冻结账户", "保证一定"]
+
+knowledge:
+  corpus: data/knowledge/receivables/
+  top_k: 5
+
+prompts:
+  system: configs/prompts/receivables/system.txt
+
+synthesis:
+  talk_template: data/schemas/receivables/话术模板.xlsx
+  prob_source: categories
+  cases_dir: data/schemas/receivables/cases/
+  seed: 42
+
+eval:
+  dataset: eval/datasets/receivables/
+  metrics: [task_completion, policy_violation, info_accuracy, no_fabrication, efficiency]

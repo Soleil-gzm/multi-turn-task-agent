@@ -1,0 +1,109 @@
+{
+  "model": "mock-llm",
+  "total_cases": 10,
+  "stage_match_rate": 0.3,
+  "task_completion_rate": 0.5,
+  "avg_tool_score": 0.8033300000000001,
+  "results": [
+    {
+      "case_id": "REC-CORE-001",
+      "layer": "core",
+      "stage": "CLOSED",
+      "expected_stage": "CLOSED",
+      "stage_match": true,
+      "task_completed": true,
+      "tool_score": 0.8,
+      "violations": 0
+    },
+    {
+      "case_id": "REC-CORE-002",
+      "layer": "core",
+      "stage": "NEGOTIATE",
+      "expected_stage": "CLOSED",
+      "stage_match": false,
+      "task_completed": false,
+      "tool_score": 0.6333,
+      "violations": 0
+    },
+    {
+      "case_id": "REC-CORE-003",
+      "layer": "core",
+      "stage": "CLOSED",
+      "expected_stage": "CLOSED",
+      "stage_match": true,
+      "task_completed": true,
+      "tool_score": 0.8,
+      "violations": 0
+    },
+    {
+      "case_id": "REC-CORE-004",
+      "layer": "core",
+      "stage": "CLOSED",
+      "expected_stage": "CLOSED",
+      "stage_match": true,
+      "task_completed": true,
+      "tool_score": 0.8,
+      "violations": 0
+    },
+    {
+      "case_id": "REC-BOUND-001",
+      "layer": "boundary",
+      "stage": "NEGOTIATE",
+      "expected_stage": "ESCALATED",
+      "stage_match": false,
+      "task_completed": false,
+      "tool_score": 0.8,
+      "violations": 0
+    },
+    {
+      "case_id": "REC-BOUND-002",
+      "layer": "boundary",
+      "stage": "NEGOTIATE",
+      "expected_stage": "ESCALATED",
+      "stage_match": false,
+      "task_completed": false,
+      "tool_score": 1.0,
+      "violations": 0
+    },
+    {
+      "case_id": "REC-BOUND-003",
+      "layer": "boundary",
+      "stage": "NEGOTIATE",
+      "expected_stage": "CLOSED",
+      "stage_match": false,
+      "task_completed": false,
+      "tool_score": 0.8,
+      "violations": 0
+    },
+    {
+      "case_id": "REC-BOUND-004",
+      "layer": "boundary",
+      "stage": "CLOSED",
+      "expected_stage": "ESCALATED",
+      "stage_match": false,
+      "task_completed": true,
+      "tool_score": 0.8,
+      "violations": 0
+    },
+    {
+      "case_id": "REC-ADV-001",
+      "layer": "adversarial",
+      "stage": "NEGOTIATE",
+      "expected_stage": "ESCALATED",
+      "stage_match": false,
+      "task_completed": false,
+      "tool_score": 0.8,
+      "violations": 0
+    },
+    {
+      "case_id": "REC-ADV-002",
+      "layer": "adversarial",
+      "stage": "CLOSED",
+      "expected_stage": "ESCALATED",
+      "stage_match": false,
+      "task_completed": true,
+      "tool_score": 0.8,
+      "violations": 1
+    }
+  ]
+}

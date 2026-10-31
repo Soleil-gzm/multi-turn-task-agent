@@ -4,6 +4,8 @@ output/
 env/
 *.pyc
 __pycache__/
+.pytest_cache/
+eval/reports/traces/
 data/**/generated/
 docs/数据集选型（补充）.md
 docs/工程契约与细节设计清单.md
