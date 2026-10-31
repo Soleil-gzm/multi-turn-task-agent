@@ -108,15 +108,49 @@ goal:
   on_success: record_promise
 
 state_machine:
-  stages: [INIT, IDENTIFY, NEGOTIATE, CONFIRM, CLOSED]
+  stages: [INIT, IDENTIFY, NEGOTIATE, CONFIRM, CLOSED, ESCALATED]
   escalate_to: ESCALATED
+  # NEGOTIATE 的子状态（offer_state），其余 stage 无子状态
+  offer_states:
+    NEGOTIATE: [probe, propose, counter, final]
+  # 12 条转移，与 §3 转移表逐行对应；receivables.yaml 必须完整落地，不可只取子集
   transitions:
-    - from: NEGOTIATE
-      to: CONFIRM
-      when: "offer_accepted"
-    - from: NEGOTIATE
+    - from: INIT
+      to: IDENTIFY
+      when: "session_start"
+    - from: IDENTIFY
+      to: NEGOTIATE/probe
+      when: "identity_verified"
+    - from: IDENTIFY
+      to: ESCALATED
+      when: "verify_failures >= 2"
+    - from: NEGOTIATE/probe
+      to: NEGOTIATE/propose
+      when: "amount_informed"
+    - from: NEGOTIATE/propose
+      to: NEGOTIATE/counter
+      when: "counter_offer"
+    - from: NEGOTIATE/counter
+      to: NEGOTIATE/propose
+      when: "counter_exceeds_policy"
+    - from: NEGOTIATE/counter
+      to: NEGOTIATE/final
+      when: "counter_within_policy"
+    - from: NEGOTIATE/*
       to: ESCALATED
       when: "round > 5 or policy_violation_attempt >= 2"
+    - from: NEGOTIATE/final
+      to: CONFIRM
+      when: "offer_accepted"
+    - from: CONFIRM
+      to: CLOSED
+      when: "promise_recorded"
+    - from: CONFIRM
+      to: NEGOTIATE/propose
+      when: "customer_withdraw"
+    - from: "*"
+      to: ESCALATED
+      when: "redline_hit or customer_refuse"
 
 entities:
   receivable: [contract_no, invoice_no, due_date, amount, overdue_days, status]
@@ -192,6 +226,6 @@ eval:
 
 **依赖方向**：`services`、`mcp` → `agent` → `state`、`tools`、`guardrails`、`retrieval` → `core`。只允许向下依赖；`adapters` 仅依赖 `core` 与 C1，数据源差异不进入 `agent` 层。
 
-**启动预检（fail-fast）**：加载 scenario.yaml 时校验①必填字段与 `tools[].impl` 可导入；②转移表 `from`/`to` 均在 `stages` 内、无孤立或不可达状态；③policy 数值合法。任一失败退出码非 0，不静默降级。转移条件使用受限表达式白名单，不使用 `eval`。
+**启动预检（fail-fast）**：加载 scenario.yaml 时校验①必填字段与 `tools[].impl` 可导入；②转移表 `from`/`to` 合法（支持 `stage`、`stage/offer_state`、`*` 三种形式：`stage` 须在 `stages` 内，`offer_state` 须在对应 stage 的 `offer_states` 声明内，`*` 仅作通配源）、无孤立或不可达状态；③policy 数值合法。任一失败退出码非 0，不静默降级。转移条件使用受限表达式白名单，不使用 `eval`。
 
 **安全边界**：减免 / 延期数值必须来自 `query_policy` 工具返回，模型无权自行决定——权限不靠模型判断。工具返回与检索片段一律视为**不可信数据源**：进入上下文前加定界标记、长度截断并剥离指令片段，不作为指令来源（防间接注入）。
