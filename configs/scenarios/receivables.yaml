@@ -57,10 +57,16 @@ entities:
 tools:
   - name: query_receivable
     impl: src.tools.receivables.tools.query_receivable
+  - name: check_invoice
+    impl: src.tools.receivables.tools.check_invoice
+  - name: diff_statement
+    impl: src.tools.receivables.tools.diff_statement
   - name: query_policy
     impl: src.tools.receivables.tools.query_policy
   - name: record_promise
     impl: src.tools.receivables.tools.record_promise
+  - name: escalate
+    impl: src.tools.receivables.tools.escalate
 
 policy:
   max_installments: 3

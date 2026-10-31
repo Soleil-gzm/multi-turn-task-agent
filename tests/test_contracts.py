@@ -15,6 +15,13 @@ from src.core.trace import TraceBuilder, StepType
 from src.eval.contracts import Case, check_tool_sequence, load_cases
 from src.state.machine import State, StateMachine
 from src.tools.registry import ToolRegistry, ToolSchema, ok, fail, ErrorCode
+from src.tools.receivables.tools import (
+    SCHEMAS,
+    build_registry,
+    check_invoice,
+    diff_statement,
+    escalate,
+)
 
 
 CONFIG_PATH = ROOT / "configs" / "scenarios" / "receivables.yaml"
@@ -113,6 +120,58 @@ class TestC2ToolContract:
         assert r["error"]["code"] == ErrorCode.NOT_FOUND
 
 
+class TestReceivablesTools:
+    def test_build_registry_registers_all_six(self):
+        reg = build_registry()
+        assert set(reg.names()) == {
+            "query_receivable",
+            "check_invoice",
+            "diff_statement",
+            "query_policy",
+            "record_promise",
+            "escalate",
+        }
+
+    def test_schema_registry_consistency(self):
+        """C2：注册表与 SCHEMAS 一一对应。"""
+        reg = build_registry()
+        assert set(reg.names()) == set(SCHEMAS.keys())
+
+    def test_check_invoice_ok(self):
+        r = check_invoice("INV-20260123")
+        assert r["ok"] is True
+        assert r["data"]["status"] == "已开"
+
+    def test_check_invoice_not_found(self):
+        r = check_invoice("INV-99999999")
+        assert r["ok"] is False
+        assert r["error"]["code"] == ErrorCode.NOT_FOUND
+
+    def test_diff_statement_detects_mismatch(self):
+        r = diff_statement("HT-Y2026-012")
+        assert r["ok"] is True
+        assert r["data"]["book_amount"] == 380000
+        assert r["data"]["customer_claimed_amount"] == 200000
+        assert r["data"]["diff"] == 180000
+        assert r["data"]["has_diff"] is True
+
+    def test_diff_statement_no_mismatch(self):
+        r = diff_statement("HT-Y2026-007")
+        assert r["ok"] is True
+        assert r["data"]["has_diff"] is False
+
+    def test_escalate_creates_ticket(self):
+        r = escalate("HT-Y2026-012", "客户拒绝沟通")
+        assert r["ok"] is True
+        assert r["data"]["ticket_id"].startswith("ESC-")
+        assert r["data"]["status"] == "created"
+
+    def test_escalate_requires_reason(self):
+        r = escalate("HT-Y2026-012", "")
+        assert r["ok"] is False
+        assert r["error"]["code"] == ErrorCode.INVALID_ARG
+
+
 # ---------------------------------------------------------------------------
 # C3 配置契约
 # ---------------------------------------------------------------------------
@@ -122,7 +181,7 @@ class TestC3Config:
         cfg = load_config(str(CONFIG_PATH))
         assert cfg.scenario.id == "receivables"
         assert len(cfg.state_machine.transitions) == 12
-        assert len(cfg.tools) == 3
+        assert len(cfg.tools) == 6
 
     def test_preflight_blocks_bad_transition(self, tmp_path):
         bad_yaml = tmp_path / "bad.yaml"

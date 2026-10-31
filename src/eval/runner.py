@@ -17,16 +17,7 @@ from src.agent.llm import MockLLMClient
 from src.agent.loop import Agent, new_session_id
 from src.core.config import load_config
 from src.eval.contracts import check_tool_sequence, load_cases
-from src.tools.registry import ToolRegistry
-from src.tools.receivables.tools import SCHEMAS, query_policy, query_receivable, record_promise
-
-
-def build_registry() -> ToolRegistry:
-    registry = ToolRegistry()
-    registry.register("query_receivable", query_receivable, SCHEMAS["query_receivable"])
-    registry.register("query_policy", query_policy, SCHEMAS["query_policy"])
-    registry.register("record_promise", record_promise, SCHEMAS["record_promise"])
-    return registry
+from src.tools.receivables.tools import build_registry
 
 
 def build_user_messages(case) -> list[str]:
