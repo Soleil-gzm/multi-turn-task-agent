@@ -27,7 +27,7 @@
 | C2 工具 | 统一返回 `{ok,data,error,meta}` + 入参 JSON Schema | 仅定义 | 10 条 case 能跑通 3 个工具 |
 | C3 配置 | scenario.yaml schema + 启动预检 | 仅定义 | 坏配置能 fail-fast |
 | C4 降级 | 7 类故障恢复路径（MVP 3 类） | 仅定义 | 3 类各有 1 用例 + trace 有 `degradation` |
-| C5 API | `/chat`、`/sessions`、`/eval` + 幂等与错误码 | 仅定义 | 一条命令起服务并完成一次对话 |
+| C5 API | `/chat`、`/sessions`、`/trace`、`/eval` + 幂等与错误码 | 仅定义 | 一条命令起服务并完成一次对话 |
 | C6 Trace | step 类型枚举 + 必填字段 | 仅定义 | 一次对话产出可解析 trace |
 | C7 安全 | 四层注入防护 | 仅定义 | 10 条对抗中 ≥2 条间接注入被拦截 |
 
