@@ -290,6 +290,102 @@ class TestStateMachine:
         assert s.stage == "CLOSED"
 
 
+class TestTwelveTransitions:
+    """12 条转移逐条单测，与 configs/scenarios/receivables.yaml 的顺序一一对应。"""
+
+    def setup_method(self):
+        self.cfg = load_config(str(CONFIG_PATH))
+        self.sm = StateMachine(self.cfg)
+
+    def _apply(self, state: State, ctx: dict) -> State:
+        t = self.sm.find_transition(state, ctx)
+        assert t is not None, f"状态 {state.display()} 在上下文 {ctx} 下无可用转移"
+        return self.sm.apply_transition(state, t)
+
+    def test_01_init_to_identify(self):
+        """INIT → IDENTIFY when session_start"""
+        s = State(stage="INIT", round_no=0)
+        assert self._apply(s, {"session_start": True}).stage == "IDENTIFY"
+
+    def test_02_identify_to_negotiate_probe(self):
+        """IDENTIFY → NEGOTIATE/probe when identity_verified"""
+        s = State(stage="IDENTIFY", round_no=1)
+        nxt = self._apply(s, {"identity_verified": True})
+        assert (nxt.stage, nxt.offer_state) == ("NEGOTIATE", "probe")
+
+    def test_03_identify_to_escalated(self):
+        """IDENTIFY → ESCALATED when verify_failures >= 2"""
+        s = State(stage="IDENTIFY", round_no=1)
+        assert self._apply(s, {"verify_failures": 2}).stage == "ESCALATED"
+
+    def test_04_probe_to_propose(self):
+        """NEGOTIATE/probe → NEGOTIATE/propose when amount_informed"""
+        s = State(stage="NEGOTIATE", round_no=2, offer_state="probe")
+        nxt = self._apply(s, {"amount_informed": True, "round": 2})
+        assert (nxt.stage, nxt.offer_state) == ("NEGOTIATE", "propose")
+        assert nxt.round_no == 2  # 同一 stage 内子状态转移不增加轮次
+
+    def test_05_propose_to_counter(self):
+        """NEGOTIATE/propose → NEGOTIATE/counter when counter_offer"""
+        s = State(stage="NEGOTIATE", round_no=3, offer_state="propose")
+        nxt = self._apply(s, {"counter_offer": True, "round": 3})
+        assert (nxt.stage, nxt.offer_state) == ("NEGOTIATE", "counter")
+
+    def test_06_counter_to_propose_when_exceeds_policy(self):
+        """NEGOTIATE/counter → NEGOTIATE/propose when counter_exceeds_policy"""
+        s = State(stage="NEGOTIATE", round_no=4, offer_state="counter")
+        nxt = self._apply(s, {"counter_exceeds_policy": True, "round": 4})
+        assert (nxt.stage, nxt.offer_state) == ("NEGOTIATE", "propose")
+
+    def test_07_counter_to_final_when_within_policy(self):
+        """NEGOTIATE/counter → NEGOTIATE/final when counter_within_policy"""
+        s = State(stage="NEGOTIATE", round_no=4, offer_state="counter")
+        nxt = self._apply(s, {"counter_within_policy": True, "round": 4})
+        assert (nxt.stage, nxt.offer_state) == ("NEGOTIATE", "final")
+
+    def test_08a_negotiate_to_escalated_on_round_limit(self):
+        """NEGOTIATE/* → ESCALATED when round > 5"""
+        s = State(stage="NEGOTIATE", round_no=6, offer_state="propose")
+        assert self._apply(s, {"round": 6}).stage == "ESCALATED"
+
+    def test_08b_negotiate_to_escalated_on_violation_attempts(self):
+        """NEGOTIATE/* → ESCALATED when policy_violation_attempt >= 2（or 分支）"""
+        s = State(stage="NEGOTIATE", round_no=2, offer_state="counter")
+        assert self._apply(s, {"round": 2, "policy_violation_attempt": 2}).stage == "ESCALATED"
+
+    def test_09_final_to_confirm(self):
+        """NEGOTIATE/final → CONFIRM when offer_accepted"""
+        s = State(stage="NEGOTIATE", round_no=5, offer_state="final")
+        nxt = self._apply(s, {"offer_accepted": True, "round": 5})
+        assert nxt.stage == "CONFIRM"
+        assert nxt.offer_state is None
+
+    def test_10_confirm_to_closed(self):
+        """CONFIRM → CLOSED when promise_recorded"""
+        s = State(stage="CONFIRM", round_no=6)
+        assert self._apply(s, {"promise_recorded": True}).stage == "CLOSED"
+
+    def test_11_confirm_to_propose_when_withdraw(self):
+        """CONFIRM → NEGOTIATE/propose when customer_withdraw"""
+        s = State(stage="CONFIRM", round_no=6)
+        nxt = self._apply(s, {"customer_withdraw": True})
+        assert (nxt.stage, nxt.offer_state) == ("NEGOTIATE", "propose")
+
+    def test_12a_any_to_escalated_on_refuse(self):
+        """* → ESCALATED when redline_hit or customer_refuse"""
+        s = State(stage="NEGOTIATE", round_no=3, offer_state="final")
+        assert self._apply(s, {"customer_refuse": True, "round": 3}).stage == "ESCALATED"
+
+    def test_12b_any_to_escalated_on_redline(self):
+        """* → ESCALATED when redline_hit（or 分支）"""
+        s = State(stage="IDENTIFY", round_no=1)
+        assert self._apply(s, {"redline_hit": True}).stage == "ESCALATED"
+
+    def test_transition_count_matches_yaml(self):
+        """配置侧 12 条转移，本类逐条覆盖。"""
+        assert len(self.cfg.state_machine.transitions) == 12
+
+
 # ---------------------------------------------------------------------------
 # C6 Trace
 # ---------------------------------------------------------------------------
