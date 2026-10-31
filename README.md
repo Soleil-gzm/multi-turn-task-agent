@@ -30,14 +30,16 @@
 
 ## 快速开始
 
-> **当前状态**：设计阶段完成，代码进入 W1 阶段——Walking Skeleton 已跑通（`make demo` 走完一次多轮并落 trace），并在其上完成 12 条转移的配置与逐条单测、6 个 mock 业务工具、10 条评测 case 与 40 个单测。LLM 当前为 `MockLLMClient`（按脚本响应，不接真实模型），API 服务与真实模型尚未接入。各契约实现状态见 [Roadmap · 契约状态](docs/roadmap.md#契约状态诚实反映代码进度每个里程碑更新)。
+> **当前状态**：设计阶段完成，代码进入 W1 阶段——Walking Skeleton 已跑通（`make demo` 走完一次多轮并落 trace），并在其上完成 12 条转移的配置与逐条单测、6 个 mock 业务工具、80 条评测 case 与 51 个单测。LLM 当前为 `MockLLMClient`（按脚本响应，不接真实模型），API 服务与真实模型尚未接入。各契约实现状态见 [Roadmap · 契约状态](docs/roadmap.md#契约状态诚实反映代码进度每个里程碑更新)。
 
 ```bash
 make demo            # 可用：运行多轮对话演示，trace 落盘到 eval/reports/traces/
-make test            # 可用：契约与工具单元测试（40 passed）
-make eval            # 可用：跑 10 条评测 case 并生成 v0 报告
+make test            # 可用：契约与工具单元测试（51 passed）
+make eval            # 可用：跑 80 条评测 case 并生成分层 v0 报告
 docker compose up    # 未实现：启动 API 服务（C5 仍为「仅定义」）
 ```
+
+> 评测集由 `src/synthesis/rule_based.py` 确定性生成（80 条 = 24 核心 + 16 边界 + 40 对抗），重新生成用 `python -m src.synthesis.rule_based`。
 
 ## 评测结果
 

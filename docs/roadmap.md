@@ -12,25 +12,28 @@
 - 评测体系设计定稿：[评测设计](eval-design.md)
 - 数据集选型定案（三集分工）与工程契约规范：[方案评审与细化](方案评审与细化.md)
 - 文档骨架与公开边界划分
-- **W1 Walking Skeleton（已跑通）**：`make demo` 走完一次多轮并落 trace，终态 `CLOSED`、任务完成；`make test` 40 passed；`make eval` 产出 v0 报告
+- **W1 Walking Skeleton（已跑通）**：`make demo` 走完一次多轮并落 trace，终态 `CLOSED`、任务完成；`make test` 51 passed；`make eval` 产出 v0 报告
 - **框架主干**：配置驱动 + 元组状态机（12 条转移、`NEGOTIATE` 4 个子状态）+ 工具注册表 + trace + 启动预检
 - **工具层**：6 个业务工具（mock 数据）全部注册，含可返回矛盾数据的 `diff_statement`
 - **状态机测试**：12 条转移逐条单测（含两条 `or` 条件分支）
-- **评测链路**：10 条 case（4 core / 4 boundary / 2 adversarial）可加载、可评测、可出报告
+- **轮次语义修正**：`round_no` 改为每轮用户输入 +1（转移不再累加），`round > 5` 升级分支可被真实触发，有 Agent 级单测覆盖
+- **评测集扩量**：80 条（24 core / 16 boundary / 40 adversarial），由 `src/synthesis/rule_based.py` 确定性生成、带真实 `content_hash`；对抗含 8 条 injection（其中 2 条间接注入）
+- **评测链路**：80 条 case 可加载、可评测、可出分层报告
 
 ### 进行中
 
-- W2 数据层：receivables 话术表、50–80 条案例、policy 知识库（当前仅 10 条 case、无知识库）
+- W2 数据层：receivables 话术表、policy 知识库（评测集已由规则化生成器补齐 80 条）
 - W0 前置：prior-art 对照清单（三集职责边界、动作粒度、policy 字段、轨迹比对、pass^k）
 - milktea 第二场景：通用性验证 4 条硬标准
 - 真实模型接入：当前 LLM 为 `MockLLMClient`，评测数字只验证链路，不代表模型能力
+- 人工抽检 20 条：尚未开始（用于补偿「未经外部校准」）
 
 ### 契约状态（诚实反映代码进度，每个里程碑更新）
 
 | 契约 | 内容 | 状态 | 验证方式 | 当前实现边界 |
 | --- | --- | --- | --- | --- |
-| C1 数据 | case / oracle schema + 三个判定边界 | 部分实现 | pydantic 可加载 + 单测 | schema 与三个判定边界已落地并有单测；评测集 10 条，`content_hash` 未真正生成 |
-| C2 工具 | 统一返回 `{ok,data,error,meta}` + 入参 JSON Schema | 部分实现 | 10 条 case 能跑通 6 个工具 | 返回封装、注册表、6 个工具与 schema 一致性单测已落地；工具均为 mock 数据 |
+| C1 数据 | case / oracle schema + 三个判定边界 | 部分实现 | pydantic 可加载 + 单测 | schema、三个判定边界、80 条 case 与真实 `content_hash` 已落地并有单测；未做人工抽检与公开集校准 |
+| C2 工具 | 统一返回 `{ok,data,error,meta}` + 入参 JSON Schema | 部分实现 | 80 条 case 能跑通 6 个工具 | 返回封装、注册表、6 个工具与 schema 一致性单测已落地；工具均为 mock 数据 |
 | C3 配置 | scenario.yaml schema + 启动预检 | 部分实现 | 坏配置能 fail-fast | 必填字段 / `impl` 可导入 / 转移合法性 / policy 数值四项预检已落地并有单测；「无孤立状态」为简化判定 |
 | C4 降级 | 7 类故障恢复路径（MVP 3 类） | 仅定义 | 3 类各有 1 用例 + trace 有 `degradation` | trace 有 `degraded` 标记，但重试 / 降级逻辑未实现 |
 | C5 API | `/chat`、`/sessions`、`/trace`、`/eval` + 幂等与错误码 | 仅定义 | 一条命令起服务并完成一次对话 | `src/services/` 仅有包骨架，无路由 |
@@ -46,10 +49,10 @@
 | Walking Skeleton | 2 状态（`IDENTIFY → NEGOTIATE`）+ 3 工具（查账款 / 查政策 / 记承诺）+ 10 条 case，端到端一条命令跑通 | `make demo` 走完一次多轮并落 trace；先跑通再扩充，不追求契约全覆盖 | 已完成（`make demo` 已验证，当前已扩到 12 转移 / 6 工具） |
 | 框架主干 | 配置驱动 + 元组状态机 + 工具注册表 + trace + 启动预检 | 两场景零代码改动可跑（C3/C6 生效） | 部分完成（组件均落地；两场景零改动验证待 milktea） |
 | 第二场景 yaml | milktea：仅 yaml + 数据即可跑通 | 通用性验证 4 条硬标准 | 未开始 |
-| 场景数据层 | receivables 话术表 + 50–80 条案例（规则化生成，含 oracle）+ policy 知识库 | 占位符三方一致校验通过 | 部分完成（10 条 case 含 oracle；话术表与知识库未做） |
+| 场景数据层 | receivables 话术表 + 50–80 条案例（规则化生成，含 oracle）+ policy 知识库 | 占位符三方一致校验通过 | 部分完成（80 条 case 含 oracle 与 content_hash；话术表与知识库未做） |
 | 状态机与工具层 | 12 条转移 + 6 个业务工具（mock 单据） | 每条转移 1 个单测 | 已完成（12 条转移逐条单测，6 工具已实现） |
 | 服务化 | FastAPI `/chat` + SQLite + `docker compose up` | 换机器一条命令起来 | 未开始 |
-| 评测落地 | 规则评测器 + 50–80 条评测集 + v0 基线报告 + 人工抽检 20 条 + 对抗 40 条（含 ≥2 条间接注入） | `make eval` 一条命令出报告 | 部分完成（评测器与报告链路已通；评测集 10 条、无人工抽检、对抗仅 2 条） |
+| 评测落地 | 规则评测器 + 50–80 条评测集 + v0 基线报告 + 人工抽检 20 条 + 对抗 40 条（含 ≥2 条间接注入） | `make eval` 一条命令出报告 | 部分完成（评测器与报告链路已通；评测集 80 条含对抗 40 条与 2 条间接注入；人工抽检未做） |
 | 文档 | prior-art 对照（只读，不接入数据） | 对照清单可逐项勾选 | 未开始 |
 
 > MVP 的判定标准是「完整可讲」：有框架、有业务场景、有评测数字、有服务化入口。**先保证闭环，再叠加亮点。**

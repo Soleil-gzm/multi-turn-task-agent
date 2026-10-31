@@ -62,7 +62,7 @@ multi-turn-task-agent/
 
 ## 3. 状态机（元组状态，非线性链）
 
-状态表示为 `(stage, round_no, offer_state)` 三元组，而非单一线性阶段序列：
+状态表示为 `(stage, round_no, offer_state)` 三元组，而非单一线性阶段序列。`round_no` 按对话轮次递增（每轮用户输入 +1），转移本身不改变轮次——同一轮内可能连续发生多条转移，若在转移中累加会重复计数。
 
 | stage | 含义 | 子状态 offer_state |
 | --- | --- | --- |

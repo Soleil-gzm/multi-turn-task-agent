@@ -159,13 +159,21 @@ class StateMachine:
         return None
 
     def apply_transition(self, current: State, t: Transition) -> State:
-        """应用转移，返回新状态。"""
+        """应用转移，返回新状态。
+
+        round_no 由对话轮次驱动（见 next_turn），转移本身不改变轮次——
+        同一轮内可能连续发生多条转移，若在此处递增会重复计数。
+        """
         stage, offer = _split_state(t.to)
-        new_round = current.round_no
-        # 进入新 stage 时轮次 +1（子状态间转移不增加轮次）
-        if stage != current.stage:
-            new_round = current.round_no + 1
-        return State(stage=stage, round_no=new_round, offer_state=offer)
+        return State(stage=stage, round_no=current.round_no, offer_state=offer)
+
+    def next_turn(self, current: State) -> State:
+        """进入下一轮对话：轮次 +1，stage 与子状态保持不变。"""
+        return State(
+            stage=current.stage,
+            round_no=current.round_no + 1,
+            offer_state=current.offer_state,
+        )
 
     def is_terminal(self, state: State) -> bool:
         return state.stage in {"CLOSED", "ESCALATED"}

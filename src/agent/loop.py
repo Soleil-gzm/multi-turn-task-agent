@@ -70,6 +70,9 @@ class Agent:
         }
 
         for user_msg in user_messages:
+            # 进入新一轮：轮次 +1（转移条件 round > 5 依赖此计数）
+            state = self.sm.next_turn(state)
+
             # 用户意图识别（W1 用关键词，W2 可换 LLM 分类）
             if any(k in user_msg for k in ("分期", "延期", "减免", "少付", "宽限")):
                 facts["counter_offer"] = True
