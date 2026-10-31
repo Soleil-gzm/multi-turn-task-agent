@@ -30,17 +30,18 @@
 
 ## 快速开始
 
-> **当前状态**：设计阶段完成（架构、场景、评测、契约均有文档），**代码尚未开始**。下一步是最小可跑版本（2 状态 / 3 工具 / 10 条评测），跑通后再按契约逐层扩充。各契约的实现状态见 [Roadmap · 契约状态](docs/roadmap.md#契约状态诚实反映代码进度每个里程碑更新)。目标使用接口：
+> **当前状态**：设计阶段完成，代码进入 W1 阶段——Walking Skeleton 已跑通（`make demo` 走完一次多轮并落 trace），并在其上完成 12 条转移的配置、6 个 mock 业务工具、10 条评测 case 与 25 个单测。LLM 当前为 `MockLLMClient`（按脚本响应，不接真实模型），API 服务与真实模型尚未接入。各契约实现状态见 [Roadmap · 契约状态](docs/roadmap.md#契约状态诚实反映代码进度每个里程碑更新)。
 
 ```bash
-make demo            # 运行多轮对话演示（SCENARIO=risawoz | receivables | milktea 切换场景）
-make eval            # 运行评测并生成报告
-docker compose up    # 启动 API 服务
+make demo            # 可用：运行多轮对话演示，trace 落盘到 eval/reports/traces/
+make test            # 可用：契约与工具单元测试（25 passed）
+make eval            # 可用：跑 10 条评测 case 并生成 v0 报告
+docker compose up    # 未实现：启动 API 服务（C5 仍为「仅定义」）
 ```
 
 ## 评测结果
 
-> 评测方法与指标定义见 [评测设计](docs/eval-design.md)；结果将在评测里程碑完成后发布于 `eval/reports/` 并更新下表。
+> 评测方法与指标定义见 [评测设计](docs/eval-design.md)。当前 `eval/reports/v0_baseline.json` 由 **Mock LLM** 生成，仅用于验证「评测集 → Agent → 指标 → 报告」链路是否打通，**不代表模型能力基线**。接入真实模型后再更新下表。
 
 | 指标 | 基线 v0 | 当前版本 | Δ |
 |---|---|---|---|
