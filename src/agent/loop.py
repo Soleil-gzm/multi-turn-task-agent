@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import json
+import re
 import uuid
 from dataclasses import dataclass, field
 from typing import Any
@@ -102,6 +103,17 @@ class Agent:
                 facts["policy_violation_attempt"] += 1
                 violations.append(f"输入越权指令: {input_check['patterns']}")
 
+            # 超政策请求：显式拒绝并给出政策内替代（规则由场景配置声明）
+            refusal = self._policy_refusal(user_msg)
+            if refusal:
+                builder.add_step(
+                    type=StepType.GUARDRAIL,
+                    rule="policy_refusal",
+                    detail=refusal,
+                    latency_ms=1,
+                )
+                facts["policy_violation_attempt"] += 1
+
             messages.append({"role": "user", "content": user_msg})
 
             # LLM 调用
@@ -164,6 +176,10 @@ class Agent:
 
                 if name == "record_promise" and result.get("ok"):
                     reply = "好的，已为您记录付款承诺。"
+
+            # 超政策请求的拒绝话术优先于工具产出话术
+            if refusal:
+                reply = refusal
 
             # 状态转移：循环直到无匹配转移（一次工具调用可能触发多级转移）
             context = {**facts, "round": state.round_no}
@@ -256,6 +272,28 @@ class Agent:
         if data[left] == data[right]:
             return None
         return rule.template.format(**{f: data[f] for f in rule.fields})
+
+    def _policy_refusal(self, text: str) -> str | None:
+        """超政策请求：抽取值与 policy 上限比较，超出则按配置模板显式拒绝并给替代方案。"""
+        rules = self.config.response.policy_refusal if self.config.response else []
+        for rule in rules:
+            m = re.search(rule.pattern, text)
+            if not m:
+                continue
+            raw = m.group(1)
+            try:
+                value = float(raw)
+            except ValueError:
+                continue
+            limit = self.policy.get(rule.policy_field)
+            if limit is None:
+                continue
+            actual = value / 100 if rule.scale == "percent" else value
+            if actual <= limit:
+                continue
+            limit_display = f"{limit:.0%}" if rule.scale == "percent" else f"{limit:g}"
+            return rule.template.format(value=raw, limit=limit_display)
+        return None
 
     def _build_system_prompt(self) -> str:
         p = self.config.policy

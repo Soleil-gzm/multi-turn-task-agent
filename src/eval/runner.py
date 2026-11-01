@@ -93,6 +93,18 @@ def _contradiction_followed(config, result) -> bool | None:
     return None
 
 
+def _policy_refusal_followed(result) -> bool | None:
+    """超政策拒绝话术是否真的输出给客户；None 表示本 case 未出现超政策请求。"""
+    refusals = [
+        step.detail
+        for step in result.trace.steps
+        if step.type == StepType.GUARDRAIL and step.rule == "policy_refusal"
+    ]
+    if not refusals:
+        return None
+    return all(r in result.replies for r in refusals)
+
+
 def main() -> None:
     config_path = ROOT / "configs" / "scenarios" / "receivables.yaml"
     config = load_config(str(config_path))
@@ -118,6 +130,7 @@ def main() -> None:
             "tool_score": tool_score["score"],
             "violations": len(r.violations),
             "contradiction_followed": _contradiction_followed(config, r),
+            "policy_refusal_followed": _policy_refusal_followed(r),
         })
 
     # 汇总（总体 + 分层）
@@ -163,6 +176,22 @@ def main() -> None:
             f"({contradiction['followed']}/{contradiction['applicable']})"
         )
 
+    # 超政策拒绝话术（仅统计出现过超政策请求的样本）
+    refusal_applicable = [r for r in results if r["policy_refusal_followed"] is not None]
+    policy_refusal = {
+        "applicable": len(refusal_applicable),
+        "followed": sum(1 for r in refusal_applicable if r["policy_refusal_followed"]),
+        "rate": (
+            sum(1 for r in refusal_applicable if r["policy_refusal_followed"]) / len(refusal_applicable)
+            if refusal_applicable else None
+        ),
+    }
+    if refusal_applicable:
+        print(
+            f"超政策拒绝话术率: {policy_refusal['rate']:.1%} "
+            f"({policy_refusal['followed']}/{policy_refusal['applicable']})"
+        )
+
     mismatches = [r for r in results if not r["stage_match"]]
     if mismatches:
         print(f"\n终态不匹配 {len(mismatches)} 条（显示前 10 条）:")
@@ -177,6 +206,7 @@ def main() -> None:
         "task_completion_rate": completion_rate,
         "avg_tool_score": avg_tool_score,
         "contradiction": contradiction,
+        "policy_refusal": policy_refusal,
         "by_layer": by_layer,
         "results": results,
     }

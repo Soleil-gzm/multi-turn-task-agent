@@ -80,6 +80,20 @@ response:
     tool: diff_statement
     fields: [book_amount, customer_claimed_amount, diff]
     template: "系统账面 {book_amount} 元，您主张 {customer_claimed_amount} 元，差额 {diff} 元，我们以系统账面为准，请您核对。"
+  # 超政策请求必须显式拒绝并给出替代方案：从用户文本抽数值，与 policy 上限比较
+  policy_refusal:
+    - pattern: "减免\\s*(\\d+(?:\\.\\d+)?)\\s*%"
+      policy_field: max_waiver_ratio
+      scale: percent
+      template: "您提出的 {value}% 减免超出我方可批的 {limit} 上限，我们最多能申请 {limit} 以内的减免，或改为分期 / 延期方案，您看哪种更合适？"
+    - pattern: "延期\\s*(\\d+)\\s*天"
+      policy_field: max_extension_days
+      scale: raw
+      template: "您提出的延期 {value} 天超出我方可批的 {limit} 天上限，最多可延 {limit} 天，您看是否可以？"
+    - pattern: "分期\\s*(\\d+)\\s*期"
+      policy_field: max_installments
+      scale: raw
+      template: "您提出的分期 {value} 期超出我方可支持的 {limit} 期上限，最多可分 {limit} 期，您看是否可以？"
 
 knowledge:
   corpus: data/knowledge/receivables/

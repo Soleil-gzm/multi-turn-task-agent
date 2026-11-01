@@ -359,6 +359,54 @@ response:
         with pytest.raises(ConfigError):
             load_config(str(p))
 
+    def test_refusal_policy_field_must_exist(self, tmp_path):
+        p = tmp_path / "ref1.yaml"
+        p.write_text(
+            self._BASE
+            + """
+response:
+  policy_refusal:
+    - pattern: "(\\\\d+)\\\\s*%"
+      policy_field: not_a_policy_field
+      template: "{value} vs {limit}"
+""",
+            encoding="utf-8",
+        )
+        with pytest.raises(ConfigError):
+            load_config(str(p))
+
+    def test_refusal_pattern_requires_capture_group(self, tmp_path):
+        p = tmp_path / "ref2.yaml"
+        p.write_text(
+            self._BASE
+            + """
+response:
+  policy_refusal:
+    - pattern: "减免 \\\\d+ %"
+      policy_field: max_waiver_ratio
+      template: "{value} vs {limit}"
+""",
+            encoding="utf-8",
+        )
+        with pytest.raises(ConfigError):
+            load_config(str(p))
+
+    def test_refusal_template_placeholder_whitelist(self, tmp_path):
+        p = tmp_path / "ref3.yaml"
+        p.write_text(
+            self._BASE
+            + """
+response:
+  policy_refusal:
+    - pattern: "(\\\\d+)"
+      policy_field: max_installments
+      template: "{value} {other}"
+""",
+            encoding="utf-8",
+        )
+        with pytest.raises(ConfigError):
+            load_config(str(p))
+
 
 # ---------------------------------------------------------------------------
 # 状态机
@@ -615,6 +663,39 @@ class TestContradictionSurfacing:
         msgs = ["你好", "合同号 HT-Y2026-007", "你们金额不对，我这边只有 12 万"]
         r = self.agent.run(new_session_id(), msgs, case_id="T-DIFF-AGREE")
         assert all("系统账面" not in reply for reply in r.replies)
+
+
+class TestPolicyRefusal:
+    """超政策请求必须显式拒绝并给出政策内替代方案（规则由 response.policy_refusal 声明）。"""
+
+    def setup_method(self):
+        self.cfg = load_config(str(CONFIG_PATH))
+        self.agent = Agent(self.cfg, build_registry(), MockLLMClient())
+
+    def test_over_policy_waiver_is_refused_with_alternative(self):
+        msgs = ["你好", "合同号 HT-Y2026-012", "必须减免 50%，不然免谈"]
+        r = self.agent.run(new_session_id(), msgs, case_id="T-REFUSE-WAIVER")
+        expected = self.cfg.response.policy_refusal[0].template.format(value="50", limit="10%")
+        assert expected in r.replies
+        assert any(
+            s.type == StepType.GUARDRAIL and s.rule == "policy_refusal" for s in r.trace.steps
+        )
+
+    def test_over_policy_extension_is_refused(self):
+        msgs = ["你好", "合同号 HT-Y2026-012", "我想延期 60 天"]
+        r = self.agent.run(new_session_id(), msgs, case_id="T-REFUSE-EXT")
+        assert any("最多可延 30 天" in x for x in r.replies)
+
+    def test_within_policy_is_not_refused(self):
+        msgs = ["你好", "合同号 HT-Y2026-012", "我想分期 3 期"]
+        r = self.agent.run(new_session_id(), msgs, case_id="T-REFUSE-NONE")
+        assert all("超出我方可" not in x for x in r.replies)
+
+    def test_repeated_over_policy_escalates_with_ticket(self):
+        msgs = ["你好", "合同号 HT-Y2026-007", "必须减免 50%，不然免谈", "必须减免 50%，不然免谈"]
+        r = self.agent.run(new_session_id(), msgs, case_id="T-REFUSE-ESC")
+        assert r.stage == "ESCALATED"
+        assert r.tool_calls.count("escalate") == 1
 
 
 class TestMockRouting:

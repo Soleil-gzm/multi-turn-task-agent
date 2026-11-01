@@ -76,8 +76,22 @@ class ContradictionRule(BaseModel):
     template: str
 
 
+class PolicyRefusalRule(BaseModel):
+    """超政策请求的显式拒绝规则：从用户文本抽取数值，与 policy 上限比较。
+
+    `pattern` 必须含 1 个捕获组（被抽取的数值）；`scale=percent` 表示抽取值需除以 100
+    后再与 `policy_field` 比较。`template` 可用 `{value}`（原始数值）与 `{limit}`（上限展示值）。
+    """
+
+    pattern: str
+    policy_field: str
+    scale: str = "raw"  # raw | percent
+    template: str
+
+
 class ResponseRules(BaseModel):
     contradiction: ContradictionRule | None = None
+    policy_refusal: list[PolicyRefusalRule] = Field(default_factory=list)
 
 
 class ScenarioConfig(BaseModel):
@@ -207,18 +221,38 @@ def _check_response(cfg: ScenarioConfig) -> None:
             raise ConfigError(f"state_machine.escalate_tool={sm.escalate_tool!r} 未在 tools 中声明")
 
     rule = cfg.response.contradiction if cfg.response else None
-    if rule is None:
-        return
-    if rule.tool not in tool_names:
-        raise ConfigError(f"response.contradiction.tool={rule.tool!r} 未在 tools 中声明")
-    if len(rule.fields) < 2:
-        raise ConfigError("response.contradiction.fields 至少需要 2 个字段（前两个用于判断是否矛盾）")
-    placeholders = set(re.findall(r"\{(\w+)\}", rule.template))
-    unknown = placeholders - set(rule.fields)
-    if unknown:
-        raise ConfigError(
-            f"response.contradiction.template 引用了未声明的字段: {sorted(unknown)}"
-        )
+    if rule is not None:
+        if rule.tool not in tool_names:
+            raise ConfigError(f"response.contradiction.tool={rule.tool!r} 未在 tools 中声明")
+        if len(rule.fields) < 2:
+            raise ConfigError("response.contradiction.fields 至少需要 2 个字段（前两个用于判断是否矛盾）")
+        placeholders = set(re.findall(r"\{(\w+)\}", rule.template))
+        unknown = placeholders - set(rule.fields)
+        if unknown:
+            raise ConfigError(
+                f"response.contradiction.template 引用了未声明的字段: {sorted(unknown)}"
+            )
+
+    for i, refusal in enumerate(cfg.response.policy_refusal if cfg.response else [], 1):
+        try:
+            compiled = re.compile(refusal.pattern)
+        except re.error as e:
+            raise ConfigError(f"response.policy_refusal #{i} 的 pattern 非法: {e}") from e
+        if compiled.groups < 1:
+            raise ConfigError(f"response.policy_refusal #{i} 的 pattern 必须含 1 个捕获组（被抽取的数值）")
+        if refusal.policy_field not in Policy.model_fields:
+            raise ConfigError(
+                f"response.policy_refusal #{i} 的 policy_field={refusal.policy_field!r} 不在 policy 中"
+            )
+        if refusal.scale not in ("raw", "percent"):
+            raise ConfigError(f"response.policy_refusal #{i} 的 scale 只能是 raw 或 percent")
+        placeholders = set(re.findall(r"\{(\w+)\}", refusal.template))
+        unknown = placeholders - {"value", "limit"}
+        if unknown:
+            raise ConfigError(
+                f"response.policy_refusal #{i} 的 template 只支持 {{value}} / {{limit}}，"
+                f"发现: {sorted(unknown)}"
+            )
 
 
 def load_config(path: str) -> ScenarioConfig:

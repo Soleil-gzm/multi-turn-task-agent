@@ -182,6 +182,12 @@ response:
     tool: diff_statement
     fields: [book_amount, customer_claimed_amount, diff]
     template: "系统账面 {book_amount} 元，您主张 {customer_claimed_amount} 元，差额 {diff} 元，我们以系统账面为准，请您核对。"
+  # 超政策请求：从用户文本抽数值，与 policy 上限比较，超出则显式拒绝并给替代方案
+  policy_refusal:
+    - pattern: "减免\\s*(\\d+(?:\\.\\d+)?)\\s*%"
+      policy_field: max_waiver_ratio
+      scale: percent          # 抽取值 / 100 后与上限比较
+      template: "您提出的 {value}% 减免超出我方可批的 {limit} 上限，我们最多能申请 {limit} 以内的减免，或改为分期 / 延期方案，您看哪种更合适？"
 
 knowledge:
   corpus: data/knowledge/receivables/
@@ -265,7 +271,7 @@ print(registry.invoke("check_invoice", invoice_no="INV-99999999"))
 | C1 数据 | case / oracle schema，三个判定边界（重复调用不惩罚、仅校验非空 order、部分完成按维度给分） | `src/eval/contracts.py` |
 | C2 工具 | 统一返回封装 `{ok, data, error, meta}`；JSON Schema 同时用于 function calling、参数评测、文档生成 | `src/tools/registry.py` |
 | C3 配置 | scenario.yaml 字段 schema | `src/core/config.py` |
-| C4 降级 | 7 类故障的可降级路径（检测 / 恢复 / 判定）；MVP 实现 3 类 | `src/agent/loop.py`（`degraded` 标记 + 矛盾数据告知已落地；重试/降级未实现） |
+| C4 降级 | 7 类故障的可降级路径（检测 / 恢复 / 判定）；MVP 实现 3 类 | `src/agent/loop.py`（`degraded` 标记 + 矛盾数据告知 + 超政策拒绝话术已落地；重试/降级未实现） |
 | C5 API | `POST /chat`、`GET /sessions/{id}`、`GET /trace/{trace_id}`、`POST /eval`、`GET /eval/{task_id}` 的请求响应与错误码 | `src/services/app.py`（规划，未实现） |
 | C6 Trace | 轨迹字段与 `type` 枚举（llm_call / tool_call / guardrail / state_transition / degradation） | `src/core/trace.py` |
 | C7 安全 | 注入四层防护（输入标记 / 决策不靠模型 / 工具返回隔离 / 输出校验） | `src/guardrails/guardrails.py` |
@@ -274,6 +280,6 @@ print(registry.invoke("check_invoice", invoice_no="INV-99999999"))
 
 **依赖方向**：`services`、`mcp` → `agent` → `state`、`tools`、`guardrails`、`retrieval` → `core`。只允许向下依赖；`adapters` 仅依赖 `core` 与 C1，数据源差异不进入 `agent` 层。
 
-**启动预检（fail-fast）**：加载 scenario.yaml 时校验①必填字段与 `tools[].impl` 可导入；②转移表 `from`/`to` 合法（支持 `stage`、`stage/offer_state`、`*` 三种形式：`stage` 须在 `stages` 内，`offer_state` 须在对应 stage 的 `offer_states` 声明内，`*` 仅作通配源）、无孤立或不可达状态；③policy 数值合法；④`escalate_tool` 与 `response.contradiction.tool` 必须在 `tools` 中声明，矛盾告知模板的占位符必须属于该规则的 `fields`。任一失败退出码非 0，不静默降级。转移条件使用受限表达式白名单，不使用 `eval`。
+**启动预检（fail-fast）**：加载 scenario.yaml 时校验①必填字段与 `tools[].impl` 可导入；②转移表 `from`/`to` 合法（支持 `stage`、`stage/offer_state`、`*` 三种形式：`stage` 须在 `stages` 内，`offer_state` 须在对应 stage 的 `offer_states` 声明内，`*` 仅作通配源）、无孤立或不可达状态；③policy 数值合法；④`escalate_tool` 与 `response.contradiction.tool` 必须在 `tools` 中声明，矛盾告知模板的占位符必须属于该规则的 `fields`，`response.policy_refusal` 的 `pattern` 必须可编译且含 1 个捕获组、`policy_field` 必须在 `policy` 中、`scale` 只能取 `raw/percent`、模板占位符只能是 `{value}` / `{limit}`。任一失败退出码非 0，不静默降级。转移条件使用受限表达式白名单，不使用 `eval`。
 
 **安全边界**：减免 / 延期数值必须来自 `query_policy` 工具返回，模型无权自行决定——权限不靠模型判断。工具返回与检索片段一律视为**不可信数据源**：进入上下文前加定界标记、长度截断并剥离指令片段，不作为指令来源（防间接注入）。
