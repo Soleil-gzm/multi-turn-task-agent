@@ -8,7 +8,7 @@
 
 1. **配置驱动**：业务规则外置于 `configs/scenarios/*.yaml`，代码不出现任何业务分支
 2. **场景可迁移**：框架适用于"多轮 + 工具 + 状态 + 政策边界"同构问题（续费、售后、供应链协同、政务办理等），换场景 = 换一个 yaml + 一份数据 + 一份知识库
-3. **评测先行**：评测标签由数据合成管线程序化产出（oracle），不依赖人工标注，详见 [评测设计](docs/eval-design.md)
+3. **评测先行**：评测标签由程序化生成（MVP 用规则化生成器，Stretch 换完整合成管线），不依赖人工标注，详见 [评测设计](docs/eval-design.md)
 
 ## 核心架构
 
@@ -32,25 +32,76 @@
 
 > **当前状态**：设计阶段完成，代码进入 W1 阶段——Walking Skeleton 已跑通（`make demo` 走完一次多轮并落 trace），并在其上完成 12 条转移的配置与逐条单测、6 个 mock 业务工具、80 条评测 case 与 51 个单测。LLM 当前为 `MockLLMClient`（按脚本响应，不接真实模型），API 服务与真实模型尚未接入。各契约实现状态见 [Roadmap · 契约状态](docs/roadmap.md#契约状态诚实反映代码进度每个里程碑更新)。
 
+### 环境准备
+
 ```bash
-make demo            # 可用：运行多轮对话演示，trace 落盘到 eval/reports/traces/
-make test            # 可用：契约与工具单元测试（51 passed）
-make eval            # 可用：跑 80 条评测 case 并生成分层 v0 报告
-docker compose up    # 未实现：启动 API 服务（C5 仍为「仅定义」）
+conda create -n mta python=3.11 -y
+conda activate mta
+python -m pip install -r requirements.txt
 ```
 
-> 评测集由 `src/synthesis/rule_based.py` 确定性生成（80 条 = 24 核心 + 16 边界 + 40 对抗），重新生成用 `python -m src.synthesis.rule_based`。
+### 常用命令
+
+```bash
+make demo                            # 多轮对话演示，trace 落盘到 eval/reports/traces/
+make test                            # 契约与工具单元测试（51 passed）
+make eval                            # 跑 80 条评测 case，生成分层 v0 报告
+python -m src.synthesis.rule_based   # 重新生成 80 条评测集（确定性，可复现）
+```
+
+`docker compose up` 尚未实现（C5 API 仅定义契约）。
+
+## 使用示例
+
+### 跑一次多轮对话
+
+```python
+from src.agent.llm import MockLLMClient
+from src.agent.loop import Agent, new_session_id
+from src.core.config import load_config
+from src.tools.receivables.tools import build_registry
+
+config = load_config("configs/scenarios/receivables.yaml")
+agent = Agent(config, build_registry(), MockLLMClient())
+
+result = agent.run(
+    new_session_id(),
+    ["你好", "合同号 HT-Y2026-012", "我想分期 3 期", "好的，我同意"],
+)
+
+print(result.stage, result.task_completed)
+# CLOSED True
+print(result.tool_calls)
+# ['query_receivable', 'query_policy', 'record_promise']
+print(result.trace.totals)
+# llm_calls=4 tool_calls=3 tokens=... latency_ms=...
+```
+
+### 接入真实模型
+
+实现 `LLMClient.chat(messages, tools)`，返回 `{"content": str | None, "tool_calls": [...] | None}`（OpenAI function calling 格式），替换 `MockLLMClient` 即可，Agent、状态机、工具与评测代码均不改动。
+
+### 新增一个场景
+
+1. 复制 `configs/scenarios/receivables.yaml`，改 `scenario` / `goal` / `state_machine` / `policy`
+2. 按 `tools[].impl` 提供工具实现（沿用 C2 统一返回）
+3. 提供 system prompt 与该场景的 case 数据
+4. `load_config` 启动预检通过即可运行，`src/` 不需要任何业务分支
 
 ## 评测结果
 
-> 评测方法与指标定义见 [评测设计](docs/eval-design.md)。当前 `eval/reports/v0_baseline.json` 由 **Mock LLM** 生成，仅用于验证「评测集 → Agent → 指标 → 报告」链路是否打通，**不代表模型能力基线**。接入真实模型后再更新下表。
+> 指标定义见 [评测设计](docs/eval-design.md)。当前被测模型为 **MockLLMClient**，下表只验证「评测集 → Agent → 指标 → 报告」链路，**不代表模型能力基线**，也不进版本间 Δ 表。
 
-| 指标 | 基线 v0 | 当前版本 | Δ |
-|---|---|---|---|
-| 任务完成率 | — | — | — |
-| 承诺合规率 | — | — | — |
-| 工具选择准确率 | — | — | — |
-| 幻觉率 | — | — | — |
+| 指标 | 当前 v0（Mock） | 说明 |
+| --- | --- | --- |
+| 终态匹配率 | 82.5% | core 75.0% / boundary 50.0% / adversarial 100.0% |
+| 任务完成率 | 22.5% | 终态为 `CLOSED` 的样本占比 |
+| 工具序列均分 | 0.80 | 覆盖率 × 0.5 + 顺序 × 0.3，命中禁用动作扣 0.5 |
+| 承诺合规率 | 未采集 | 需真实模型；对抗层样本 40 条 |
+| 注入拦截率 | 未采集 | 数据集含 8 条 injection（其中 2 条间接注入） |
+| 幻觉率 | 未采集 | 需真实模型 |
+
+完整结果见 `eval/reports/v0_baseline.json`（含分层指标与逐条明细）。
 
 ## 文档导航
 

@@ -9,38 +9,37 @@
 ```
 multi-turn-task-agent/
 ├── README.md
-├── docker-compose.yml          # API（单服务，SQLite 挂载卷）
-├── Makefile                    # make up / make demo / make eval / make test
-├── CHANGELOG.md
+├── Makefile                    # make demo / make test / make eval
+├── requirements.txt            # 运行与测试依赖
 ├── configs/
-│   ├── scenarios/
-│   │   ├── receivables.yaml    # 场景一（主线）
-│   │   └── milktea.yaml        # 场景二（通用性验证）
-│   └── prompts/
-│       ├── receivables/
-│       └── milktea/
+│   ├── scenarios/receivables.yaml
+│   └── prompts/receivables/system.txt
 ├── src/
-│   ├── core/                   # 配置加载、注册表、日志、随机服务、trace
-│   ├── adapters/               # 公开数据集适配器（risawoz 等）
-│   ├── state/                  # 状态机 + 持久化
-│   ├── tools/                  # 工具注册表 + 按场景分实现
-│   ├── retrieval/              # 手搓 BM25 + 向量 + RRF
-│   ├── agent/                  # ReAct 循环 + 上下文工程
-│   ├── guardrails/             # 输入检测 + 政策校验 + 预算
-│   ├── synthesis/              # 数据合成（声明式组装 + 概率生成 + 对话构建）
-│   ├── eval/                   # 契约校验 + 评测运行器
-│   ├── services/               # FastAPI
-│   └── mcp/                    # MCP 工具暴露
+│   ├── core/                   # config.py（C3 配置与启动预检）、trace.py（C6）
+│   ├── state/machine.py        # 元组状态机 + 受限条件求值
+│   ├── tools/
+│   │   ├── registry.py         # C2 统一返回 + 工具注册表
+│   │   └── receivables/tools.py # 6 个业务工具 + JSON Schema（mock 数据）
+│   ├── agent/                  # loop.py（ReAct + 状态机）、llm.py（接口 + Mock）、demo.py
+│   ├── guardrails/guardrails.py # C7 输入检测 / 工具侧隔离 / 输出校验
+│   ├── synthesis/rule_based.py # 规则化生成 80 条评测集
+│   ├── eval/                   # contracts.py（C1）、runner.py（评测运行器）
+│   ├── adapters/               # （规划）公开数据集适配器
+│   ├── retrieval/              # （规划）BM25 检索
+│   ├── services/               # （规划）FastAPI 服务
+│   └── mcp/                    # （规划）MCP 工具暴露
 ├── data/
-│   ├── schemas/receivables/    # 话术模板、prob、cases（虚构）
-│   └── knowledge/receivables/  # 公开资料整理的政策文档
+│   ├── schemas/receivables/    # （规划）话术模板
+│   └── knowledge/receivables/  # （规划）政策知识库
 ├── eval/
-│   ├── datasets/               # 分层评测集
-│   ├── graders/                # 规则 / Judge / 轨迹审计
-│   ├── metrics/                # 指标采集
-│   └── reports/                # 评测报告
-└── tests/
+│   ├── datasets/receivables/cases.jsonl   # 80 条评测集（含 oracle 与 content_hash）
+│   ├── graders/                # （规划）LLM Judge / 轨迹审计
+│   ├── metrics/                # （规划）指标采集
+│   └── reports/                # v0_baseline.json + traces/
+└── tests/test_contracts.py     # 契约 / 状态机 / 工具单测
 ```
+
+> 标注「（规划）」的目录当前只有包骨架或为空，无实现。
 
 ## 2. 五层结构
 
@@ -157,17 +156,17 @@ entities:
 
 tools:
   - name: query_receivable
-    impl: src.tools.receivables.query_receivable
+    impl: src.tools.receivables.tools.query_receivable
   - name: check_invoice
-    impl: src.tools.receivables.check_invoice
+    impl: src.tools.receivables.tools.check_invoice
   - name: diff_statement
-    impl: src.tools.receivables.diff_statement
+    impl: src.tools.receivables.tools.diff_statement
   - name: query_policy
-    impl: src.tools.receivables.query_policy
+    impl: src.tools.receivables.tools.query_policy
   - name: record_promise
-    impl: src.tools.receivables.record_promise
+    impl: src.tools.receivables.tools.record_promise
   - name: escalate
-    impl: src.tools.receivables.escalate
+    impl: src.tools.receivables.tools.escalate
 
 policy:
   max_installments: 3
@@ -193,7 +192,7 @@ eval:
   metrics: [task_completion, policy_violation, info_accuracy, no_fabrication, efficiency]
 ```
 
-换场景 = 换一个 yaml + 一份数据 + 一份知识库。`milktea.yaml` 使用同一 schema，仅字段值不同（见 [场景设计](scenario-design.md#4-场景二milktea业务规则注入验证)）。
+换场景 = 换一个 yaml + 一份数据 + 一份知识库。`milktea.yaml`（规划中，尚未创建）将使用同一 schema，仅字段值不同（见 [场景设计](scenario-design.md#4-场景二milktea业务规则注入验证)）。
 
 ## 5. 六个业务工具
 
@@ -208,6 +207,46 @@ eval:
 
 > `diff_statement` 是评测区分度的关键来源：它让"账实不符"成为真实约束，而非伪工具。评测体系详见 [评测设计](eval-design.md)。
 
+### 5.1 入参、返回与错误码
+
+六个工具统一走 C2 返回封装；失败时 `ok=false`，`error.code` 取 `NOT_FOUND / INVALID_ARG / TOOL_TIMEOUT / INTERNAL_ERROR / DEGRADED` 之一。
+
+| 工具 | 入参（JSON Schema 有正则约束） | 成功时 `data` | 可能错误码 |
+| --- | --- | --- | --- |
+| `query_receivable` | `contract_no`：`^HT-Y2026-\d{3}$` | `contract_no`、`invoice_no`、`amount`、`due_date`、`overdue_days`、`status` | `NOT_FOUND`、`INVALID_ARG` |
+| `check_invoice` | `invoice_no`：`^INV-\d{8}$` | `invoice_no`、`contract_no`、`status`（已开 / 已抵扣 / 红冲）、`amount`、`issued_date` | `NOT_FOUND`、`INVALID_ARG` |
+| `diff_statement` | `contract_no` | `book_amount`、`customer_claimed_amount`、`diff`、`has_diff`、`customer_note` | `NOT_FOUND`、`INVALID_ARG` |
+| `query_policy` | 无 | `max_installments`、`max_extension_days`、`max_waiver_ratio`、`forbidden_patterns` | — |
+| `record_promise` | `contract_no`、`pay_date`（YYYY-MM-DD）、`amount`（整数） | 承诺记录（含 `recorded_at`） | `INVALID_ARG` |
+| `escalate` | `contract_no`、`reason` | `ticket_id`（`ESC-0001` 起）、`status`（`created`） | `INVALID_ARG` |
+
+> 当前 6 个工具均为 **mock 实现**：单据、发票、对账单存于内存字典，承诺与升级记录存于内存列表，进程重启即丢失（持久化在 W3 接入 SQLite）。接真实数据源时只替换实现，schema、返回封装与评测口径不变。
+
+### 5.2 调用示例
+
+```python
+from src.tools.receivables.tools import build_registry
+
+registry = build_registry()
+print(registry.names())  # 6 个工具名
+
+# 正常返回
+print(registry.invoke("diff_statement", contract_no="HT-Y2026-012"))
+# {"ok": True,
+#  "data": {"book_amount": 380000, "customer_claimed_amount": 200000,
+#           "diff": 180000, "has_diff": True, "customer_note": "..."},
+#  "error": None,
+#  "meta": {"source": "mock_statement", "latency_ms": 0}}
+
+# 错误返回
+print(registry.invoke("check_invoice", invoice_no="INV-99999999"))
+# {"ok": False, "data": None,
+#  "error": {"code": "NOT_FOUND", "msg": "发票 INV-99999999 不存在", "retryable": False},
+#  "meta": {...}}
+```
+
+工具 schema 可直接转成 function calling 描述：`registry.function_calling_schemas()`，同时用于参数正确率评测与文档生成。
+
 ## 6. 契约层与启动预检
 
 契约回答「具体长什么样」，完整定义见 [方案评审与细化 · 工程契约规范](方案评审与细化.md#2-工程契约规范)。代码只依赖契约，不依赖描述性文档：
@@ -217,12 +256,12 @@ eval:
 | C1 数据 | case / oracle schema，三个判定边界（重复调用不惩罚、仅校验非空 order、部分完成按维度给分） | `src/eval/contracts.py` |
 | C2 工具 | 统一返回封装 `{ok, data, error, meta}`；JSON Schema 同时用于 function calling、参数评测、文档生成 | `src/tools/registry.py` |
 | C3 配置 | scenario.yaml 字段 schema | `src/core/config.py` |
-| C4 降级 | 7 类故障的可降级路径（检测 / 恢复 / 判定）；MVP 实现 3 类 | `src/agent/loop.py`、`src/tools/wrapper.py` |
-| C5 API | `/chat`、`/sessions`、`/trace`、`/eval` 的请求响应与错误码 | `src/services/app.py` |
+| C4 降级 | 7 类故障的可降级路径（检测 / 恢复 / 判定）；MVP 实现 3 类 | `src/agent/loop.py`（当前仅写入 `degraded` 标记，重试/降级未实现） |
+| C5 API | `POST /chat`、`GET /sessions/{id}`、`GET /trace/{trace_id}`、`POST /eval`、`GET /eval/{task_id}` 的请求响应与错误码 | `src/services/app.py`（规划，未实现） |
 | C6 Trace | 轨迹字段与 `type` 枚举（llm_call / tool_call / guardrail / state_transition / degradation） | `src/core/trace.py` |
-| C7 安全 | 注入四层防护（输入标记 / 决策不靠模型 / 工具返回隔离 / 输出校验） | `src/guardrails/` |
+| C7 安全 | 注入四层防护（输入标记 / 决策不靠模型 / 工具返回隔离 / 输出校验） | `src/guardrails/guardrails.py` |
 
-**契约的落地顺序**：契约不等于必须一次实现。代码按 Walking Skeleton（2 状态 / 3 工具 / 10 条 case）先行，再逐层补齐；每份契约当前处于「仅定义 / 部分实现 / 已实现」哪一档，以 [Roadmap · 契约状态](roadmap.md#契约状态诚实反映代码进度每个里程碑更新) 为准。
+**契约的落地顺序**：契约不等于必须一次实现。代码按 Walking Skeleton 先行（已跑通），当前已扩至 12 条转移 / 6 个工具 / 80 条 case；每份契约当前处于「仅定义 / 部分实现 / 已实现」哪一档，以 [Roadmap · 契约状态](roadmap.md#契约状态诚实反映代码进度每个里程碑更新) 为准。
 
 **依赖方向**：`services`、`mcp` → `agent` → `state`、`tools`、`guardrails`、`retrieval` → `core`。只允许向下依赖；`adapters` 仅依赖 `core` 与 C1，数据源差异不进入 `agent` 层。
 
