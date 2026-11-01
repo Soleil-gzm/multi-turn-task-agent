@@ -29,8 +29,8 @@
 完整架构（目录结构、元组状态机、场景配置注入点、工具层）见 [架构设计](docs/architecture.md)。
 
 ## 快速开始
-
-> **当前状态**：设计阶段完成，代码进入 W1 阶段——Walking Skeleton 已跑通（`make demo` 走完一次多轮并落 trace），并在其上完成 12 条转移的配置与逐条单测、6 个 mock 业务工具、80 条评测 case 与 51 个单测。LLM 当前为 `MockLLMClient`（按脚本响应，不接真实模型），API 服务与真实模型尚未接入。各契约实现状态见 [Roadmap · 契约状态](docs/roadmap.md#契约状态诚实反映代码进度每个里程碑更新)。
+ 
+> **当前状态**：设计阶段完成，代码进入 W1 阶段——Walking Skeleton 已跑通（`make demo` 走完一次多轮并落 trace），并在其上完成 12 条转移的配置与逐条单测、6 个 mock 业务工具、80 条评测 case 与 54 个单测。LLM 当前为 `MockLLMClient`（按脚本响应，不接真实模型），API 服务与真实模型尚未接入。各契约实现状态见 [Roadmap · 契约状态](docs/roadmap.md#契约状态诚实反映代码进度每个里程碑更新)。
 
 ### 环境准备
 
@@ -44,7 +44,7 @@ python -m pip install -r requirements.txt
 
 ```bash
 make demo                            # 多轮对话演示，trace 落盘到 eval/reports/traces/
-make test                            # 契约与工具单元测试（51 passed）
+make test                            # 契约与工具单元测试（54 passed）
 make eval                            # 跑 80 条评测 case，生成分层 v0 报告
 python -m src.synthesis.rule_based   # 重新生成 80 条评测集（确定性，可复现）
 ```
@@ -94,7 +94,7 @@ print(result.trace.totals)
 
 | 指标 | 当前 v0（Mock） | 说明 |
 | --- | --- | --- |
-| 终态匹配率 | 82.5% | core 75.0% / boundary 50.0% / adversarial 100.0% |
+| 终态匹配率 | 87.5% | core 75.0% / boundary 75.0% / adversarial 100.0% |
 | 任务完成率 | 22.5% | 终态为 `CLOSED` 的样本占比 |
 | 工具序列均分 | 0.80 | 覆盖率 × 0.5 + 顺序 × 0.3，命中禁用动作扣 0.5 |
 | 承诺合规率 | 未采集 | 需真实模型；对抗层样本 40 条 |

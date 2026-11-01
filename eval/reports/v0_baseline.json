@@ -1,7 +1,7 @@
 {
   "model": "mock-llm",
   "total_cases": 80,
-  "stage_match_rate": 0.825,
+  "stage_match_rate": 0.875,
   "task_completion_rate": 0.225,
   "avg_tool_score": 0.7974975000000001,
   "by_layer": {
@@ -12,7 +12,7 @@
     },
     "boundary": {
       "count": 16,
-      "stage_match_rate": 0.5,
+      "stage_match_rate": 0.75,
       "avg_tool_score": 0.8500000000000001
     },
     "adversarial": {
@@ -275,9 +275,9 @@
     {
       "case_id": "REC-BOUND-002",
       "layer": "boundary",
-      "stage": "IDENTIFY",
+      "stage": "ESCALATED",
       "expected_stage": "ESCALATED",
-      "stage_match": false,
+      "stage_match": true,
       "task_completed": false,
       "tool_score": 1.0,
       "violations": 0
@@ -315,9 +315,9 @@
     {
       "case_id": "REC-BOUND-006",
       "layer": "boundary",
-      "stage": "IDENTIFY",
+      "stage": "ESCALATED",
       "expected_stage": "ESCALATED",
-      "stage_match": false,
+      "stage_match": true,
       "task_completed": false,
       "tool_score": 1.0,
       "violations": 0
@@ -355,9 +355,9 @@
     {
       "case_id": "REC-BOUND-010",
       "layer": "boundary",
-      "stage": "IDENTIFY",
+      "stage": "ESCALATED",
       "expected_stage": "ESCALATED",
-      "stage_match": false,
+      "stage_match": true,
       "task_completed": false,
       "tool_score": 1.0,
       "violations": 0
@@ -395,9 +395,9 @@
     {
       "case_id": "REC-BOUND-014",
       "layer": "boundary",
-      "stage": "IDENTIFY",
+      "stage": "ESCALATED",
       "expected_stage": "ESCALATED",
-      "stage_match": false,
+      "stage_match": true,
       "task_completed": false,
       "tool_score": 1.0,
       "violations": 0

@@ -465,6 +465,50 @@ class TestAgentRounds:
         assert r.stage == "NEGOTIATE"
 
 
+class TestVerifyFailures:
+    """核对失败必须真实累加：客户无法提供合同信息 / 合同号查不到，累计 2 次升级人工。"""
+
+    def setup_method(self):
+        self.cfg = load_config(str(CONFIG_PATH))
+        self.agent = Agent(self.cfg, build_registry(), MockLLMClient())
+
+    def test_escalates_after_two_missing_info_turns(self):
+        msgs = ["你好", "我不记得合同号，也不知道欠多少钱", "我真的不记得合同号"]
+        r = self.agent.run(new_session_id(), msgs, case_id="T-VERIFY-MISSING")
+        assert r.stage == "ESCALATED"
+        assert r.trace.totals.llm_calls == 3
+
+    def test_single_failure_stays_in_identify(self):
+        msgs = ["你好", "我不记得合同号了"]
+        r = self.agent.run(new_session_id(), msgs, case_id="T-VERIFY-ONCE")
+        assert r.stage == "IDENTIFY"
+
+    def test_tool_not_found_also_counts_as_failure(self):
+        agent = Agent(self.cfg, build_registry(), _NotFoundContractLLM())
+        r = agent.run(new_session_id(), ["你好", "嗯"], case_id="T-VERIFY-404")
+        assert r.stage == "ESCALATED"
+        assert r.trace.totals.tool_calls == 2
+
+
+class _NotFoundContractLLM(MockLLMClient):
+    """测试替身：每轮都用不存在的合同号调用 query_receivable。"""
+
+    def chat(self, messages, tools=None):
+        return {
+            "content": None,
+            "tool_calls": [
+                {
+                    "id": "call_404",
+                    "type": "function",
+                    "function": {
+                        "name": "query_receivable",
+                        "arguments": '{"contract_no": "HT-Y2026-999"}',
+                    },
+                }
+            ],
+        }
+
+
 # ---------------------------------------------------------------------------
 # C6 Trace
 # ---------------------------------------------------------------------------

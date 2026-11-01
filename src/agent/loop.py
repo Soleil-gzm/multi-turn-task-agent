@@ -82,6 +82,9 @@ class Agent:
                 facts["customer_refuse"] = True
             if any(k in user_msg for k in ("算了", "撤回", "刚才不算")):
                 facts["customer_withdraw"] = True
+            # 身份 / 单据核对失败：客户无法提供合同号等核验信息
+            if any(k in user_msg for k in ("不记得", "不知道", "忘了", "记不清", "没记住")):
+                facts["verify_failures"] += 1
 
             # 输入侧 guardrail
             input_check = check_input(user_msg)
@@ -131,9 +134,13 @@ class Agent:
                 )
 
                 # 更新事实状态
-                if name == "query_receivable" and result.get("ok"):
-                    facts["amount_informed"] = True
-                    facts["identity_verified"] = True
+                if name == "query_receivable":
+                    if result.get("ok"):
+                        facts["amount_informed"] = True
+                        facts["identity_verified"] = True
+                    else:
+                        # 合同号查不到 = 核对失败（IDENTIFY 阶段累计 2 次升级人工）
+                        facts["verify_failures"] += 1
                 elif name == "query_policy" and result.get("ok"):
                     # W1 简化：查了政策即认为方案在政策内
                     facts["counter_within_policy"] = True

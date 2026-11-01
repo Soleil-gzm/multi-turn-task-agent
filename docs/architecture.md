@@ -78,7 +78,7 @@ multi-turn-task-agent/
 | --- | --- | --- |
 | INIT | IDENTIFY | 会话开始 |
 | IDENTIFY | NEGOTIATE | 身份与单据核对通过 |
-| IDENTIFY | ESCALATED | 核对失败 2 次 |
+| IDENTIFY | ESCALATED | 核对失败 2 次（客户无法提供合同信息 / 合同号查不到，均计数） |
 | NEGOTIATE/probe | NEGOTIATE/propose | 已告知账款事实 |
 | NEGOTIATE/propose | NEGOTIATE/counter | 客户提出反方案 |
 | NEGOTIATE/counter | NEGOTIATE/propose | 反方案超政策上限 |
