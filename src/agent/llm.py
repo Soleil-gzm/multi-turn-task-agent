@@ -7,8 +7,13 @@ W1 使用 MockLLM 跑通端到端，不依赖真实 API。
 from __future__ import annotations
 
 import json
+import re
 from abc import ABC, abstractmethod
 from typing import Any
+
+
+_CONTRACT_RE = re.compile(r"HT-Y2026-\d{3}")
+_AMOUNT_RE = re.compile(r"'amount':\s*(\d+)")
 
 
 class LLMClient(ABC):
@@ -22,7 +27,13 @@ class LLMClient(ABC):
 
 
 class MockLLMClient(LLMClient):
-    """用于演示与测试的 mock LLM，按预设脚本响应。"""
+    """用于演示与测试的 mock LLM，按预设脚本响应。
+
+    参数单一真源：
+      - contract_no 取自用户输入（最近一条含合同号的用户消息）
+      - amount 取自已查询的账面数据（最近一条 query_receivable 工具返回）
+    任何分支都不再硬编码合同号/金额，避免跨合同样本查到同一份数据。
+    """
 
     def __init__(self) -> None:
         # 简单的关键词 → 响应脚本
@@ -43,35 +54,15 @@ class MockLLMClient(LLMClient):
                 last_user = m["content"]
                 break
 
+        # 参数真源：合同号来自用户输入，金额来自已查询的账面数据
+        contract_no = self._extract_contract_no(messages)
+        amount = self._extract_amount(messages)
+
         # 关键词路由
         if "合同" in last_user and "HT-" in last_user:
-            return {
-                "content": None,
-                "tool_calls": [
-                    {
-                        "id": "call_1",
-                        "type": "function",
-                        "function": {
-                            "name": "query_receivable",
-                            "arguments": json.dumps({"contract_no": "HT-Y2026-012"}),
-                        },
-                    }
-                ],
-            }
+            return self._tool_call("query_receivable", {"contract_no": contract_no}, "call_1")
         if "金额不对" in last_user or "对账" in last_user or "不符" in last_user or "差异" in last_user:
-            return {
-                "content": None,
-                "tool_calls": [
-                    {
-                        "id": "call_4",
-                        "type": "function",
-                        "function": {
-                            "name": "diff_statement",
-                            "arguments": json.dumps({"contract_no": "HT-Y2026-012"}),
-                        },
-                    }
-                ],
-            }
+            return self._tool_call("diff_statement", {"contract_no": contract_no}, "call_4")
         if (
             "政策" in last_user
             or "分期" in last_user
@@ -79,41 +70,52 @@ class MockLLMClient(LLMClient):
             or "延期" in last_user
             or "宽限" in last_user
         ):
-            return {
-                "content": None,
-                "tool_calls": [
-                    {
-                        "id": "call_2",
-                        "type": "function",
-                        "function": {
-                            "name": "query_policy",
-                            "arguments": "{}",
-                        },
-                    }
-                ],
-            }
+            return self._tool_call("query_policy", {}, "call_2")
         if "承诺" in last_user or "付款" in last_user or "同意" in last_user:
-            return {
-                "content": None,
-                "tool_calls": [
-                    {
-                        "id": "call_3",
-                        "type": "function",
-                        "function": {
-                            "name": "record_promise",
-                            "arguments": json.dumps({
-                                "contract_no": "HT-Y2026-012",
-                                "pay_date": "2026-11-15",
-                                "amount": 380000,
-                            }),
-                        },
-                    }
-                ],
-            }
-        # 默认：给出协商回复
+            return self._tool_call(
+                "record_promise",
+                {"contract_no": contract_no, "pay_date": "2026-11-15", "amount": amount},
+                "call_3",
+            )
+        # 默认：给出协商回复（不假设已查询，避免编造）
         return {
-            "content": f"好的，关于您提到的「{last_user[:20]}」，我帮您核实一下。根据合同记录，您目前有一笔逾期账款需要协商付款安排。",
+            "content": f"好的，关于您提到的「{last_user[:20]}」，我帮您核实一下。",
             "tool_calls": None,
+        }
+
+    @staticmethod
+    def _extract_contract_no(messages: list[dict[str, str]]) -> str:
+        """从最近一条含合同号的用户消息提取合同号（真源：用户输入）。"""
+        for m in reversed(messages):
+            if m.get("role") != "user":
+                continue
+            found = _CONTRACT_RE.search(m.get("content", ""))
+            if found:
+                return found.group(0)
+        return "HT-Y2026-012"
+
+    @staticmethod
+    def _extract_amount(messages: list[dict[str, str]]) -> int:
+        """从最近一条工具返回中提取 amount（真源：query_receivable 账面数据）。"""
+        for m in reversed(messages):
+            if m.get("role") != "tool":
+                continue
+            found = _AMOUNT_RE.search(m.get("content", ""))
+            if found:
+                return int(found.group(1))
+        return 380000
+
+    @staticmethod
+    def _tool_call(name: str, args: dict, call_id: str) -> dict[str, Any]:
+        return {
+            "content": None,
+            "tool_calls": [
+                {
+                    "id": call_id,
+                    "type": "function",
+                    "function": {"name": name, "arguments": json.dumps(args)},
+                }
+            ],
         }
 
 

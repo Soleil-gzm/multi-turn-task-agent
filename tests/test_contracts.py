@@ -515,6 +515,17 @@ class TestMockRouting:
         assert r.stage == "CLOSED"
         assert "diff_statement" in r.tool_calls
 
+    def test_parameters_match_case_contract_not_hardcoded(self):
+        """合同号 007 的样本：工具入参必须是 007，承诺金额必须是账面 120000。"""
+        msgs = ["你好", "合同号 HT-Y2026-007", "我想分期 3 期", "好的，我同意"]
+        r = self.agent.run(new_session_id(), msgs, case_id="T-MOCK-PARAM")
+        tool_steps = [s for s in r.trace.steps if s.type.value == "tool_call"]
+        qr = next(s for s in tool_steps if s.tool == "query_receivable")
+        rp = next(s for s in tool_steps if s.tool == "record_promise")
+        assert qr.args["contract_no"] == "HT-Y2026-007"
+        assert rp.args["contract_no"] == "HT-Y2026-007"
+        assert rp.args["amount"] == 120000
+
 
 class _NotFoundContractLLM(MockLLMClient):
     """测试替身：每轮都用不存在的合同号调用 query_receivable。"""
