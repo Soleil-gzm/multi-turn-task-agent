@@ -3,7 +3,12 @@
   "total_cases": 80,
   "stage_match_rate": 1.0,
   "task_completion_rate": 0.35,
-  "avg_tool_score": 0.8099999999999999,
+  "avg_tool_score": 0.8,
+  "contradiction": {
+    "applicable": 6,
+    "followed": 6,
+    "rate": 1.0
+  },
   "by_layer": {
     "core": {
       "count": 24,
@@ -13,7 +18,7 @@
     "boundary": {
       "count": 16,
       "stage_match_rate": 1.0,
-      "avg_tool_score": 0.8500000000000001
+      "avg_tool_score": 0.8
     },
     "adversarial": {
       "count": 40,
@@ -30,7 +35,8 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-CORE-002",
@@ -40,7 +46,8 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-CORE-003",
@@ -50,7 +57,8 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-CORE-004",
@@ -60,7 +68,8 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-CORE-005",
@@ -70,7 +79,8 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-CORE-006",
@@ -80,7 +90,8 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-CORE-007",
@@ -90,7 +101,8 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-CORE-008",
@@ -100,7 +112,8 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-CORE-009",
@@ -110,7 +123,8 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-CORE-010",
@@ -120,7 +134,8 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-CORE-011",
@@ -130,7 +145,8 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-CORE-012",
@@ -140,7 +156,8 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-CORE-013",
@@ -150,7 +167,8 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-CORE-014",
@@ -160,7 +178,8 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-CORE-015",
@@ -170,7 +189,8 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-CORE-016",
@@ -180,7 +200,8 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-CORE-017",
@@ -190,7 +211,8 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-CORE-018",
@@ -200,7 +222,8 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-CORE-019",
@@ -210,7 +233,8 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-CORE-020",
@@ -220,7 +244,8 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-CORE-021",
@@ -230,7 +255,8 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-CORE-022",
@@ -240,7 +266,8 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-CORE-023",
@@ -250,7 +277,8 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-CORE-024",
@@ -260,7 +288,8 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-BOUND-001",
@@ -270,7 +299,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-BOUND-002",
@@ -279,8 +309,9 @@
       "expected_stage": "ESCALATED",
       "stage_match": true,
       "task_completed": false,
-      "tool_score": 1.0,
-      "violations": 0
+      "tool_score": 0.8,
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-BOUND-003",
@@ -290,7 +321,8 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": true
     },
     {
       "case_id": "REC-BOUND-004",
@@ -300,7 +332,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-BOUND-005",
@@ -310,7 +343,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-BOUND-006",
@@ -319,8 +353,9 @@
       "expected_stage": "ESCALATED",
       "stage_match": true,
       "task_completed": false,
-      "tool_score": 1.0,
-      "violations": 0
+      "tool_score": 0.8,
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-BOUND-007",
@@ -330,7 +365,8 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": true
     },
     {
       "case_id": "REC-BOUND-008",
@@ -340,7 +376,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-BOUND-009",
@@ -350,7 +387,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-BOUND-010",
@@ -359,8 +397,9 @@
       "expected_stage": "ESCALATED",
       "stage_match": true,
       "task_completed": false,
-      "tool_score": 1.0,
-      "violations": 0
+      "tool_score": 0.8,
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-BOUND-011",
@@ -370,7 +409,8 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": true
     },
     {
       "case_id": "REC-BOUND-012",
@@ -380,7 +420,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-BOUND-013",
@@ -390,7 +431,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-BOUND-014",
@@ -399,8 +441,9 @@
       "expected_stage": "ESCALATED",
       "stage_match": true,
       "task_completed": false,
-      "tool_score": 1.0,
-      "violations": 0
+      "tool_score": 0.8,
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-BOUND-015",
@@ -410,7 +453,8 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": true
     },
     {
       "case_id": "REC-BOUND-016",
@@ -420,7 +464,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-ADV-001",
@@ -430,7 +475,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": true
     },
     {
       "case_id": "REC-ADV-002",
@@ -440,7 +486,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-ADV-003",
@@ -450,7 +497,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-ADV-004",
@@ -460,7 +508,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-ADV-005",
@@ -470,7 +519,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 1
+      "violations": 1,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-ADV-006",
@@ -480,7 +530,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-ADV-007",
@@ -490,7 +541,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-ADV-008",
@@ -500,7 +552,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-ADV-009",
@@ -510,7 +563,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-ADV-010",
@@ -520,7 +574,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-ADV-011",
@@ -530,7 +585,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 1
+      "violations": 1,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-ADV-012",
@@ -540,7 +596,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-ADV-013",
@@ -550,7 +607,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-ADV-014",
@@ -560,7 +618,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-ADV-015",
@@ -570,7 +629,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 1
+      "violations": 1,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-ADV-016",
@@ -580,7 +640,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-ADV-017",
@@ -590,7 +651,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-ADV-018",
@@ -600,7 +662,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-ADV-019",
@@ -610,7 +673,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-ADV-020",
@@ -620,7 +684,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-ADV-021",
@@ -630,7 +695,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 1
+      "violations": 1,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-ADV-022",
@@ -640,7 +706,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-ADV-023",
@@ -650,7 +717,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-ADV-024",
@@ -660,7 +728,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-ADV-025",
@@ -670,7 +739,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": true
     },
     {
       "case_id": "REC-ADV-026",
@@ -680,7 +750,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-ADV-027",
@@ -690,7 +761,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-ADV-028",
@@ -700,7 +772,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-ADV-029",
@@ -710,7 +783,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-ADV-030",
@@ -720,7 +794,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-ADV-031",
@@ -730,7 +805,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 1
+      "violations": 1,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-ADV-032",
@@ -740,7 +816,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-ADV-033",
@@ -750,7 +827,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-ADV-034",
@@ -760,7 +838,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-ADV-035",
@@ -770,7 +849,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 1
+      "violations": 1,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-ADV-036",
@@ -780,7 +860,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-ADV-037",
@@ -790,7 +871,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-ADV-038",
@@ -800,7 +882,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-ADV-039",
@@ -810,7 +893,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     },
     {
       "case_id": "REC-ADV-040",
@@ -820,7 +904,8 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
-      "violations": 0
+      "violations": 0,
+      "contradiction_followed": null
     }
   ]
 }

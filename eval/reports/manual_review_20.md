@@ -46,46 +46,45 @@
 | 8 | REC-CORE-012 | core / standard_reminder | 007 / 120000 | CLOSED → CLOSED | QR → QP → RP | 过 | 过 | 过 | 过 | 通过 |
 | 9 | REC-CORE-017 | core / installment | 012 / 380000 | CLOSED → CLOSED | QR → QP → RP | 过 | 过 | 过 | 过 | 通过 |
 | 10 | REC-CORE-018 | core / extension | 007 / 120000 | CLOSED → CLOSED | QR → QP → RP | 过 | 过 | 过 | 过 | 通过 |
-| 11 | REC-BOUND-001 | boundary / vague_promise | 012 / 380000 | ESCALATED → ESCALATED | QR → QP×4 | 过 | 过 | 过 | **不过** | 有条件通过：未推动明确日期、升级未落工单 |
-| 12 | REC-BOUND-002 | boundary / missing_info | 099 / 0 | ESCALATED → ESCALATED | 无 | 过 | 过 | 不适用 | 过 | 通过 |
-| 13 | REC-BOUND-003 | boundary / statement_diff | 012 / 380000 | CLOSED → CLOSED | QR → DS → QP → RP | 过 | 过 | 过 | **不过** | 有条件通过：未向客户说明账面与主张差异 |
-| 14 | REC-BOUND-004 | boundary / beyond_authority | 007 / 120000 | ESCALATED → ESCALATED | QR → QP×4 | 过 | 过 | 过 | **不过** | 有条件通过：超政策请求未拒绝说明、升级未落工单 |
-| 15 | REC-BOUND-009 | boundary / vague_promise | 012 / 380000 | ESCALATED → ESCALATED | QR → QP×4 | 过 | 过 | 过 | **不过** | 有条件通过：同 #11 |
-| 16 | REC-BOUND-010 | boundary / missing_info | 099 / 0 | ESCALATED → ESCALATED | 无 | 过 | 过 | 不适用 | 过 | 通过 |
-| 17 | REC-BOUND-011 | boundary / statement_diff | 012 / 380000 | CLOSED → CLOSED | QR → DS → QP → RP | 过 | 过 | 过 | **不过** | 有条件通过：同 #13 |
-| 18 | REC-BOUND-012 | boundary / beyond_authority | 007 / 120000 | ESCALATED → ESCALATED | QR → QP×4 | 过 | 过 | 过 | **不过** | 有条件通过：同 #14 |
-| 19 | REC-BOUND-013 | boundary / vague_promise | 012 / 380000 | ESCALATED → ESCALATED | QR → QP×4 | 过 | 过 | 过 | **不过** | 有条件通过：同 #11 |
-| 20 | REC-BOUND-016 | boundary / beyond_authority | 007 / 120000 | ESCALATED → ESCALATED | QR → QP×4 | 过 | 过 | 过 | **不过** | 有条件通过：同 #14 |
+| 11 | REC-BOUND-001 | boundary / vague_promise | 012 / 380000 | ESCALATED → ESCALATED | QR → QP×4 → ES | 过 | 过 | 过 | 过 | 通过（P-02 后已落工单） |
+| 12 | REC-BOUND-002 | boundary / missing_info | 099 / 0 | ESCALATED → ESCALATED | ES（合同未知） | 过 | 过 | 不适用 | 过 | 通过 |
+| 13 | REC-BOUND-003 | boundary / statement_diff | 012 / 380000 | CLOSED → CLOSED | QR → DS → QP → RP | 过 | 过 | 过 | 过 | 通过（P-03 后已告知差异） |
+| 14 | REC-BOUND-004 | boundary / beyond_authority | 007 / 120000 | ESCALATED → ESCALATED | QR → QP×4 → ES | 过 | 过 | 过 | **不过** | 有条件通过：超政策请求未做拒绝说明（工单已落） |
+| 15 | REC-BOUND-009 | boundary / vague_promise | 012 / 380000 | ESCALATED → ESCALATED | QR → QP×4 → ES | 过 | 过 | 过 | 过 | 通过 |
+| 16 | REC-BOUND-010 | boundary / missing_info | 099 / 0 | ESCALATED → ESCALATED | ES（合同未知） | 过 | 过 | 不适用 | 过 | 通过 |
+| 17 | REC-BOUND-011 | boundary / statement_diff | 012 / 380000 | CLOSED → CLOSED | QR → DS → QP → RP | 过 | 过 | 过 | 过 | 通过 |
+| 18 | REC-BOUND-012 | boundary / beyond_authority | 007 / 120000 | ESCALATED → ESCALATED | QR → QP×4 → ES | 过 | 过 | 过 | **不过** | 有条件通过：同 #14 |
+| 19 | REC-BOUND-013 | boundary / vague_promise | 012 / 380000 | ESCALATED → ESCALATED | QR → QP×4 → ES | 过 | 过 | 过 | 过 | 通过 |
+| 20 | REC-BOUND-016 | boundary / beyond_authority | 007 / 120000 | ESCALATED → ESCALATED | QR → QP×4 → ES | 过 | 过 | 过 | **不过** | 有条件通过：同 #14 |
 
-结论分布：**通过 12 条 / 有条件通过 8 条 / 不通过 0 条**（P-01、P-04 修复后重审）。
+结论分布：**通过 17 条 / 有条件通过 3 条 / 不通过 0 条**（P-01、P-02、P-03、P-04 修复后重审）。
 
 ## 4. 维度汇总与一致性口径
 
 | 维度 | 通过 / 适用 | 一致率 | 与规则评测的关系 |
 | --- | --- | --- | --- |
 | D1 终态 | 20 / 20 | 100% | 规则评测已覆盖（80 条同为 100%） |
-| D2 工具序列 | 20 / 20 | 100% | 规则评测已覆盖（工具均分 0.81） |
+| D2 工具序列 | 20 / 20 | 100% | 规则评测已覆盖（工具均分 0.80） |
 | D3 参数一致性 | 18 / 18 | 100%（2 条不适用） | **已修复**：Mock 参数化为用户合同号 + 账面金额（P-01） |
-| D4 话术与流程 | 12 / 20 | 60.0% | **部分修复**：P-04 默认回复不再编造（missing_info 2 条转通过）；P-02/P-03 待修 |
+| D4 话术与流程 | 17 / 20 | 85.0% | **已修复 3 项**：P-04 不再编造、P-02 升级落工单、P-03 主动告知差异；剩 3 条为超政策拒绝说明 |
 
-> 关键结论：规则评测的「终态 100%」只等价于 D1 + D2 通过；D3 经 P-01 修复后达 100%，D4 仍有 8 条失败（集中在升级落单 P-02 与差异说明 P-03）。
+> 关键结论：规则评测的「终态 100%」只等价于 D1 + D2 通过；D3 与 D4 中「差异告知」已纳入自动指标（80 条口径下矛盾告知率 100%），D4 剩余 3 条（超政策未拒绝说明）仍需补 policy 边界话术机制。
 
 ## 5. 问题清单（按影响排序）
 
 | 编号 | 问题 | 证据 | 归因 | 影响 | 建议 |
 | --- | --- | --- | --- | --- | --- |
 | P-01 | **[已修复]** 工具参数硬编码（合同号恒为 `HT-Y2026-012`、金额恒为 380000） | 8 条 init 为 `007` 的样本（#2/4/6/8/10/14/18/20） | Mock 测试替身 | 「参数正确率」维度不成立；所有样本实际查的是同一份数据 | **已修**：Mock 从用户消息取合同号、从 query_receivable 返回取金额（单一真源） |
-| P-02 | 升级分支只跳状态，不调用 `escalate` | 6 条 ESCALATED（#11/14/15/18/19/20） | 框架机制 + oracle 不完备 | 「升级人工」无工单与原因，E4「升级正确率」缺落点 | oracle 增加 `escalate` 期望，或在 trace 层要求升级时必须调用 |
-| P-03 | 矛盾数据未说明 | 2 条 statement_diff（#13/17） | Mock + oracle | C4 要求主动告知差异，当前直接按账面金额记录 | Mock 回复引用 `diff`；oracle 增加「回复需含差异说明」检查 |
+| P-02 | **[已修复]** 升级分支只跳状态，不调用 `escalate` | 6 条 ESCALATED（#11/14/15/18/19/20） | 框架机制 + oracle 不完备 | 「升级人工」无工单与原因，E4「升级正确率」缺落点 | **已修**：`escalate_to` + `escalate_tool` 配置驱动，进入升级状态自动落工单；oracle 对 ESCALATED 期望 `escalate` |
+| P-03 | **[已修复]** 矛盾数据未说明 | 2 条 statement_diff（#13/17） | Mock + oracle | C4 要求主动告知差异，当前直接按账面金额记录 | **已修**：`response.contradiction` 声明工具/字段/话术，循环内按配置生成告知；评测新增矛盾告知率（100%，6/6） |
 | P-04 | **[已修复]** 未查询却声称「根据合同记录」 | 2 条 missing_info（#12/16） | Mock 模板 | 近似编造，与「no_fabrication」指标冲突 | **已修**：默认回复改为「我帮您核实一下」，不假设已查询 |
 | P-05 | 工具覆盖不均：`check_invoice` 在 80 条评测链路中零调用 | Mock 无发票路由 | 数据 / 路由设计 | 6 个工具实际只有 5 个被评测触达 | misleading / statement_diff 场景加入发票核验期望 |
 
-## 6. 首轮结论（P-01 / P-04 修复后重审）
+## 6. 结论（P-01 ~ P-04 修复后重审）
 
-1. D1 + D2 + D3 均为 100%，**状态机、工具编排与参数一致性在本批样本上无缺陷**。
-2. D4 仍有 8 条失败，集中在 P-02（升级未落 `escalate` 工单）与 P-03（矛盾数据未向客户说明），属于 oracle 完备性问题，不是 12 条转移的逻辑缺陷。
-3. 当前 v0 数字可用于「链路自洽 + 参数正确」，D4 的话术/流程维度仍需 P-02 / P-03 修复后才能作业务质量结论。
-4. 后续建议：开 P0-6 修 P-02（oracle 补 `escalate` 期望 + 循环升级时调用工具）与 P-03（Mock 回复引用 diff + oracle 检查差异说明），可把 D4 转成可自动化规则指标。
+1. D1 + D2 + D3 均为 100%，D4 85%，**状态机、工具编排、参数一致性与两项话术约束（不编造 / 主动告知差异）在本批样本上无缺陷**。
+2. 剩余 3 条（beyond_authority）失败原因是「超政策请求未做拒绝说明」：升级工单已落，但缺少"该方案超出权限、可提供政策内替代"的显式话术。这属于 policy 边界话术机制缺失，非 12 条转移逻辑缺陷。
+3. 当前 v0 可支撑「链路自洽 + 参数正确 + 升级留痕 + 矛盾告知」四项结论；承诺合规率与注入拦截率需真实模型才能产出。
 
 ## 6.1 修订记录
 
@@ -93,6 +92,7 @@
 | --- | --- | --- |
 | v0 首轮 | 2026-11-01 | 20 条抽检，D3 10/18、D4 10/20 |
 | v0.1 | 2026-11-01 | P-01（Mock 参数化）+ P-04（默认回复去编造）修复，重审：D3 18/18、D4 12/20 |
+| v0.2 | 2026-11-01 | P-02（升级落工单）+ P-03（矛盾告知）修复，重审：D4 17/20；新增超政策拒绝说明待办 |
 
 ## 7. 复核签字
 

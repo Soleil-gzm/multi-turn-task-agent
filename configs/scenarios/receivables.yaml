@@ -11,6 +11,7 @@ goal:
 state_machine:
   stages: [INIT, IDENTIFY, NEGOTIATE, CONFIRM, CLOSED, ESCALATED]
   escalate_to: ESCALATED
+  escalate_tool: escalate
   offer_states:
     NEGOTIATE: [probe, propose, counter, final]
   transitions:
@@ -73,6 +74,12 @@ policy:
   max_extension_days: 30
   max_waiver_ratio: 0.10
   forbidden_patterns: ["威胁", "起诉你", "冻结账户", "保证一定"]
+
+response:
+  contradiction:
+    tool: diff_statement
+    fields: [book_amount, customer_claimed_amount, diff]
+    template: "系统账面 {book_amount} 元，您主张 {customer_claimed_amount} 元，差额 {diff} 元，我们以系统账面为准，请您核对。"
 
 knowledge:
   corpus: data/knowledge/receivables/
