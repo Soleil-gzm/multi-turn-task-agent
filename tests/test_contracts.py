@@ -490,6 +490,32 @@ class TestVerifyFailures:
         assert r.trace.totals.tool_calls == 2
 
 
+class TestMockRouting:
+    """Mock 关键词路由需覆盖延期与对账争议，否则对应 case 无法按 oracle 收敛。"""
+
+    def setup_method(self):
+        self.cfg = load_config(str(CONFIG_PATH))
+        self.agent = Agent(self.cfg, build_registry(), MockLLMClient())
+
+    def test_extension_closes_with_policy_lookup(self):
+        msgs = ["你好", "合同号 HT-Y2026-012", "我想延期 30 天", "好的，我同意"]
+        r = self.agent.run(new_session_id(), msgs, case_id="T-MOCK-EXT")
+        assert r.stage == "CLOSED"
+        assert "query_policy" in r.tool_calls
+
+    def test_statement_diff_closes_after_dispute(self):
+        msgs = [
+            "你好",
+            "合同号 HT-Y2026-012",
+            "你们金额不对，我这边只有 20 万",
+            "那按你们账面金额来吧，我想分期 3 期",
+            "好的，我同意",
+        ]
+        r = self.agent.run(new_session_id(), msgs, case_id="T-MOCK-DIFF")
+        assert r.stage == "CLOSED"
+        assert "diff_statement" in r.tool_calls
+
+
 class _NotFoundContractLLM(MockLLMClient):
     """测试替身：每轮都用不存在的合同号调用 query_receivable。"""
 

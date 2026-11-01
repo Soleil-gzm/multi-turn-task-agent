@@ -58,7 +58,27 @@ class MockLLMClient(LLMClient):
                     }
                 ],
             }
-        if "政策" in last_user or "分期" in last_user or "减免" in last_user:
+        if "金额不对" in last_user or "对账" in last_user or "不符" in last_user or "差异" in last_user:
+            return {
+                "content": None,
+                "tool_calls": [
+                    {
+                        "id": "call_4",
+                        "type": "function",
+                        "function": {
+                            "name": "diff_statement",
+                            "arguments": json.dumps({"contract_no": "HT-Y2026-012"}),
+                        },
+                    }
+                ],
+            }
+        if (
+            "政策" in last_user
+            or "分期" in last_user
+            or "减免" in last_user
+            or "延期" in last_user
+            or "宽限" in last_user
+        ):
             return {
                 "content": None,
                 "tool_calls": [
