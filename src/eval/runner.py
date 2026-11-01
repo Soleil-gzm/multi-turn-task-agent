@@ -16,6 +16,7 @@ if str(ROOT) not in sys.path:
 from src.agent.llm import MockLLMClient
 from src.agent.loop import Agent, new_session_id
 from src.core.config import load_config
+from src.core.trace import StepType
 from src.eval.contracts import check_tool_sequence, load_cases
 from src.tools.receivables.tools import build_registry
 
@@ -71,6 +72,27 @@ def build_user_messages(case) -> list[str]:
     return base
 
 
+def _contradiction_followed(config, result) -> bool | None:
+    """C4 检查：工具返回矛盾数据时，回复里是否按配置话术主动告知。
+
+    返回 None 表示本 case 不适用（未调用该工具，或两侧字段一致无矛盾）。
+    """
+    rule = config.response.contradiction if config.response else None
+    if rule is None:
+        return None
+    for step in result.trace.steps:
+        if step.type != StepType.TOOL_CALL or step.tool != rule.tool:
+            continue
+        data = (step.result or {}).get("data")
+        if not isinstance(data, dict) or not all(f in data for f in rule.fields):
+            return None
+        if data[rule.fields[0]] == data[rule.fields[1]]:
+            return None
+        expected = rule.template.format(**{f: data[f] for f in rule.fields})
+        return expected in result.replies
+    return None
+
+
 def main() -> None:
     config_path = ROOT / "configs" / "scenarios" / "receivables.yaml"
     config = load_config(str(config_path))
@@ -95,6 +117,7 @@ def main() -> None:
             "task_completed": r.task_completed,
             "tool_score": tool_score["score"],
             "violations": len(r.violations),
+            "contradiction_followed": _contradiction_followed(config, r),
         })
 
     # 汇总（总体 + 分层）
@@ -124,6 +147,22 @@ def main() -> None:
     print(f"任务完成率: {completion_rate:.1%}")
     print(f"工具调用均分: {avg_tool_score:.2f}")
 
+    # C4 矛盾数据告知率（仅统计真实出现矛盾且调用了该工具的样本）
+    applicable = [r for r in results if r["contradiction_followed"] is not None]
+    contradiction = {
+        "applicable": len(applicable),
+        "followed": sum(1 for r in applicable if r["contradiction_followed"]),
+        "rate": (
+            sum(1 for r in applicable if r["contradiction_followed"]) / len(applicable)
+            if applicable else None
+        ),
+    }
+    if applicable:
+        print(
+            f"矛盾数据告知率: {contradiction['rate']:.1%} "
+            f"({contradiction['followed']}/{contradiction['applicable']})"
+        )
+
     mismatches = [r for r in results if not r["stage_match"]]
     if mismatches:
         print(f"\n终态不匹配 {len(mismatches)} 条（显示前 10 条）:")
@@ -137,6 +176,7 @@ def main() -> None:
         "stage_match_rate": stage_match_rate,
         "task_completion_rate": completion_rate,
         "avg_tool_score": avg_tool_score,
+        "contradiction": contradiction,
         "by_layer": by_layer,
         "results": results,
     }

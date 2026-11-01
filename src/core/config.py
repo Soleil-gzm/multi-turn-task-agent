@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import importlib
+import re
 from typing import Any
 
 import yaml
@@ -38,6 +39,7 @@ class Transition(BaseModel):
 class StateMachine(BaseModel):
     stages: list[str]
     escalate_to: str | None = None
+    escalate_tool: str | None = None
     offer_states: dict[str, list[str]] = Field(default_factory=dict)
     transitions: list[Transition] = Field(default_factory=list)
 
@@ -63,6 +65,21 @@ class Prompts(BaseModel):
     system: str
 
 
+class ContradictionRule(BaseModel):
+    """矛盾数据告知规则：工具返回的两个字段不一致时，必须向客户说明。
+
+    字段名与话术由场景配置声明，框架代码不出现业务字段。
+    """
+
+    tool: str
+    fields: list[str] = Field(default_factory=list)
+    template: str
+
+
+class ResponseRules(BaseModel):
+    contradiction: ContradictionRule | None = None
+
+
 class ScenarioConfig(BaseModel):
     scenario: ScenarioMeta
     goal: Goal
@@ -72,6 +89,7 @@ class ScenarioConfig(BaseModel):
     policy: Policy
     knowledge: Knowledge | None = None
     prompts: Prompts
+    response: ResponseRules | None = None
     synthesis: dict[str, Any] = Field(default_factory=dict)
     eval: dict[str, Any] = Field(default_factory=dict)
 
@@ -179,6 +197,30 @@ def _check_policy(cfg: ScenarioConfig) -> None:
         raise ConfigError("policy.max_waiver_ratio 必须在 [0, 1] 之间")
 
 
+def _check_response(cfg: ScenarioConfig) -> None:
+    """校验升级工具与矛盾告知规则引用的工具、字段、占位符。"""
+    sm = cfg.state_machine
+    tool_names = {t.name for t in cfg.tools}
+
+    if sm.escalate_tool:
+        if sm.escalate_tool not in tool_names:
+            raise ConfigError(f"state_machine.escalate_tool={sm.escalate_tool!r} 未在 tools 中声明")
+
+    rule = cfg.response.contradiction if cfg.response else None
+    if rule is None:
+        return
+    if rule.tool not in tool_names:
+        raise ConfigError(f"response.contradiction.tool={rule.tool!r} 未在 tools 中声明")
+    if len(rule.fields) < 2:
+        raise ConfigError("response.contradiction.fields 至少需要 2 个字段（前两个用于判断是否矛盾）")
+    placeholders = set(re.findall(r"\{(\w+)\}", rule.template))
+    unknown = placeholders - set(rule.fields)
+    if unknown:
+        raise ConfigError(
+            f"response.contradiction.template 引用了未声明的字段: {sorted(unknown)}"
+        )
+
+
 def load_config(path: str) -> ScenarioConfig:
     """加载并校验 scenario.yaml，失败抛 ConfigError。"""
     with open(path, encoding="utf-8") as f:
@@ -187,4 +229,5 @@ def load_config(path: str) -> ScenarioConfig:
     _check_transitions(cfg)
     _check_tools(cfg)
     _check_policy(cfg)
+    _check_response(cfg)
     return cfg

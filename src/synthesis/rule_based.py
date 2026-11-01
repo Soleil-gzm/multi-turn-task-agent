@@ -74,8 +74,12 @@ def _oracle(
     terminal_stage: str,
     forbidden: list[str] | None = None,
 ) -> dict:
+    sequence = list(tools)
+    # 升级终态必须落工单：oracle 显式要求 escalate（顺序不限）
+    if terminal_stage == "ESCALATED" and not any(t["tool"] == "escalate" for t in sequence):
+        sequence.append(_tool("escalate", None))
     return {
-        "expected_tool_sequence": tools,
+        "expected_tool_sequence": sequence,
         "expected_args": {"query_receivable": {"contract_no": contract_no}} if contract_no else {},
         "forbidden_actions": forbidden or FORBIDDEN_BASE,
         "expected_terminal": {"stage": terminal_stage},

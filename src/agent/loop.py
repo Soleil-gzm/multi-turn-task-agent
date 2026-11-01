@@ -27,6 +27,7 @@ class AgentResult:
     trace: Trace
     task_completed: bool
     violations: list[str] = field(default_factory=list)
+    replies: list[str] = field(default_factory=list)
 
 
 class Agent:
@@ -51,6 +52,9 @@ class Agent:
         ]
         violations: list[str] = []
         tool_names_called: list[str] = []
+        replies: list[str] = []
+        last_contract_no: str | None = None
+        escalation_reason: str | None = None
 
         # 跟踪整个对话过程中的事实状态（供转移条件使用）
         facts = {
@@ -123,6 +127,8 @@ class Agent:
                     args = {}
 
                 tool_names_called.append(name)
+                if args.get("contract_no"):
+                    last_contract_no = args["contract_no"]
                 result = self.registry.invoke(name, **args)
                 builder.add_step(
                     type=StepType.TOOL_CALL,
@@ -132,6 +138,11 @@ class Agent:
                     latency_ms=result.get("meta", {}).get("latency_ms", 10),
                     degraded=not result.get("ok", False),
                 )
+
+                # 矛盾数据必须主动告知（C4）：字段与话术由场景配置声明
+                contradiction = self._contradiction_reply(name, result)
+                if contradiction:
+                    reply = contradiction
 
                 # 更新事实状态
                 if name == "query_receivable":
@@ -168,8 +179,37 @@ class Agent:
                     state_after=state.display(),
                     latency_ms=1,
                 )
+                if state.stage == (self.config.state_machine.escalate_to or ""):
+                    escalation_reason = f"{old} -> {state.display()}：{t.when}"
                 if self.sm.is_terminal(state):
                     break
+
+            # 升级分支必须落工单：进入升级状态时调用一次 escalate（工具名由配置声明）
+            escalate_to = self.config.state_machine.escalate_to
+            escalate_tool = self.config.state_machine.escalate_tool
+            if (
+                escalate_to
+                and escalate_tool
+                and state.stage == escalate_to
+                and escalate_tool not in tool_names_called
+                and escalate_tool in self.registry.names()
+            ):
+                if escalation_reason is None:
+                    escalation_reason = f"进入 {escalate_to}（round {state.round_no}）"
+                esc_args = {
+                    "contract_no": last_contract_no or "UNKNOWN",
+                    "reason": escalation_reason,
+                }
+                result = self.registry.invoke(escalate_tool, **esc_args)
+                tool_names_called.append(escalate_tool)
+                builder.add_step(
+                    type=StepType.TOOL_CALL,
+                    tool=escalate_tool,
+                    args=esc_args,
+                    result=result,
+                    latency_ms=result.get("meta", {}).get("latency_ms", 10),
+                    degraded=not result.get("ok", False),
+                )
 
             # 输出侧 guardrail
             out_check = check_output(reply, self.policy)
@@ -183,6 +223,7 @@ class Agent:
                 violations.extend(out_check["violations"])
 
             messages.append({"role": "assistant", "content": reply})
+            replies.append(reply)
 
             if self.sm.is_terminal(state):
                 break
@@ -200,7 +241,21 @@ class Agent:
             trace=trace,
             task_completed=state.stage == "CLOSED",
             violations=violations,
+            replies=replies,
         )
+
+    def _contradiction_reply(self, tool_name: str, result: dict[str, Any]) -> str | None:
+        """C4：工具返回两个字段不一致时，按配置话术主动告知客户。"""
+        rule = self.config.response.contradiction if self.config.response else None
+        if rule is None or tool_name != rule.tool or not result.get("ok"):
+            return None
+        data = result.get("data")
+        if not isinstance(data, dict) or not all(f in data for f in rule.fields):
+            return None
+        left, right = rule.fields[0], rule.fields[1]
+        if data[left] == data[right]:
+            return None
+        return rule.template.format(**{f: data[f] for f in rule.fields})
 
     def _build_system_prompt(self) -> str:
         p = self.config.policy

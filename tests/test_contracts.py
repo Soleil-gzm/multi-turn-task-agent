@@ -291,6 +291,75 @@ prompts:
             load_config(str(bad_yaml))
 
 
+class TestC3ResponseRules:
+    """C3：升级工具与矛盾告知规则引用的工具 / 字段必须存在。"""
+
+    _BASE = """
+scenario:
+  id: bad
+  display_name: bad
+  version: 1
+goal:
+  success_criteria: x
+  max_rounds: 5
+state_machine:
+  stages: [INIT, CLOSED]
+  transitions:
+    - from: INIT
+      to: CLOSED
+      when: "true"
+tools:
+  - name: t
+    impl: src.tools.registry.ok
+policy:
+  max_installments: 3
+  max_extension_days: 30
+  max_waiver_ratio: 0.10
+  forbidden_patterns: []
+prompts:
+  system: x
+"""
+
+    def test_undeclared_escalate_tool_rejected(self, tmp_path):
+        p = tmp_path / "esc.yaml"
+        p.write_text(self._BASE.replace("stages: [INIT, CLOSED]", "stages: [INIT, CLOSED]\n  escalate_tool: nope"),
+                     encoding="utf-8")
+        with pytest.raises(ConfigError):
+            load_config(str(p))
+
+    def test_undeclared_contradiction_tool_rejected(self, tmp_path):
+        p = tmp_path / "resp.yaml"
+        p.write_text(
+            self._BASE
+            + """
+response:
+  contradiction:
+    tool: nope
+    fields: [a, b]
+    template: "{a} vs {b}"
+""",
+            encoding="utf-8",
+        )
+        with pytest.raises(ConfigError):
+            load_config(str(p))
+
+    def test_template_placeholder_must_be_declared(self, tmp_path):
+        p = tmp_path / "tpl.yaml"
+        p.write_text(
+            self._BASE
+            + """
+response:
+  contradiction:
+    tool: t
+    fields: [a, b]
+    template: "{a} vs {unknown_field}"
+""",
+            encoding="utf-8",
+        )
+        with pytest.raises(ConfigError):
+            load_config(str(p))
+
+
 # ---------------------------------------------------------------------------
 # 状态机
 # ---------------------------------------------------------------------------
@@ -487,7 +556,65 @@ class TestVerifyFailures:
         agent = Agent(self.cfg, build_registry(), _NotFoundContractLLM())
         r = agent.run(new_session_id(), ["你好", "嗯"], case_id="T-VERIFY-404")
         assert r.stage == "ESCALATED"
-        assert r.trace.totals.tool_calls == 2
+        # 2 次 query_receivable 失败 + 1 次升级工单
+        assert r.tool_calls.count("query_receivable") == 2
+        assert r.tool_calls.count("escalate") == 1
+
+
+class TestEscalationTicket:
+    """P-02：进入升级状态必须落工单（工具名由 scenario.yaml 声明）。"""
+
+    def setup_method(self):
+        self.cfg = load_config(str(CONFIG_PATH))
+        self.agent = Agent(self.cfg, build_registry(), MockLLMClient())
+
+    def test_escalate_called_once_on_escalation(self):
+        msgs = ["合同号 HT-Y2026-012"] + ["嗯"] * 5  # round > 5 触发升级
+        r = self.agent.run(new_session_id(), msgs, case_id="T-ESC-TICKET")
+        assert r.stage == "ESCALATED"
+        assert r.tool_calls.count("escalate") == 1
+
+    def test_escalate_args_carry_contract_and_reason(self):
+        msgs = ["合同号 HT-Y2026-007"] + ["嗯"] * 5
+        r = self.agent.run(new_session_id(), msgs, case_id="T-ESC-ARGS")
+        step = next(s for s in r.trace.steps if s.tool == "escalate")
+        assert step.args["contract_no"] == "HT-Y2026-007"
+        assert step.args["reason"]
+
+    def test_missing_info_escalates_without_contract(self):
+        msgs = ["你好", "我不记得合同号，也不知道欠多少钱", "我真的不记得合同号"]
+        r = self.agent.run(new_session_id(), msgs, case_id="T-ESC-UNKNOWN")
+        step = next(s for s in r.trace.steps if s.tool == "escalate")
+        assert step.args["contract_no"] == "UNKNOWN"
+        assert r.tool_calls.count("escalate") == 1
+
+    def test_no_escalate_on_closed_path(self):
+        msgs = ["你好", "合同号 HT-Y2026-012", "我想分期 3 期", "好的，我同意"]
+        r = self.agent.run(new_session_id(), msgs, case_id="T-ESC-NONE")
+        assert r.stage == "CLOSED"
+        assert "escalate" not in r.tool_calls
+
+
+class TestContradictionSurfacing:
+    """P-03：矛盾数据必须按配置话术主动告知客户。"""
+
+    def setup_method(self):
+        self.cfg = load_config(str(CONFIG_PATH))
+        self.agent = Agent(self.cfg, build_registry(), MockLLMClient())
+
+    def test_diff_statement_contradiction_is_surfaced(self):
+        msgs = ["你好", "合同号 HT-Y2026-012", "你们金额不对，我这边只有 20 万"]
+        r = self.agent.run(new_session_id(), msgs, case_id="T-DIFF-SURFACE")
+        rule = self.cfg.response.contradiction
+        expected = rule.template.format(
+            book_amount=380000, customer_claimed_amount=200000, diff=180000
+        )
+        assert expected in r.replies
+
+    def test_no_surface_when_amounts_agree(self):
+        msgs = ["你好", "合同号 HT-Y2026-007", "你们金额不对，我这边只有 12 万"]
+        r = self.agent.run(new_session_id(), msgs, case_id="T-DIFF-AGREE")
+        assert all("系统账面" not in reply for reply in r.replies)
 
 
 class TestMockRouting:
