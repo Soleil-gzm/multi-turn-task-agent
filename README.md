@@ -30,24 +30,32 @@
 
 ## 快速开始
  
-> **当前状态**：设计阶段完成，代码进入 W1 阶段——Walking Skeleton 已跑通（`make demo` 走完一次多轮并落 trace），并在其上完成 12 条转移的配置与逐条单测、6 个 mock 业务工具、80 条评测 case 与 56 个单测。LLM 当前为 `MockLLMClient`（按脚本响应，不接真实模型），API 服务与真实模型尚未接入。各契约实现状态见 [Roadmap · 契约状态](docs/roadmap.md#契约状态诚实反映代码进度每个里程碑更新)。
+> **当前状态**：设计阶段完成，**W1 已完成、进入 W2 数据层**——Walking Skeleton 已跑通（`make demo` 走完一次多轮并落 trace），并完成 12 条转移的配置与逐条单测、6 个 mock 业务工具、80 条评测 case、56 个单测与 v0 基线报告（Mock）；W2 的话术表与 policy 知识库尚未开始。LLM 当前为 `MockLLMClient`（按脚本响应，不接真实模型），API 服务与真实模型尚未接入。各契约实现状态见 [Roadmap · 契约状态](docs/roadmap.md#契约状态诚实反映代码进度每个里程碑更新)。
 
 ### 环境准备
 
+- Python **3.10+**：代码仅使用 `from __future__ import annotations`、`X | Y` 等 3.10 语法，未使用 3.11+ 专有特性
+- 本地实测版本 **3.13.9**（`python --version`）；不强制某一小版本，以实际解释器为准
+- `pydantic` / `pyyaml` / `pytest` 为运行与测试必需；`fastapi` / `uvicorn` / `httpx` / `jieba` 为服务化与检索阶段预留
+
 ```bash
-conda create -n mta python=3.11 -y
+conda create -n mta python=3.13 -y     # 3.10+ 均可
 conda activate mta
 python -m pip install -r requirements.txt
 ```
 
 ### 常用命令
 
-```bash
-make demo                            # 多轮对话演示，trace 落盘到 eval/reports/traces/
-make test                            # 契约与工具单元测试（56 passed）
-make eval                            # 跑 80 条评测 case，生成分层 v0 报告
-python -m src.synthesis.rule_based   # 重新生成 80 条评测集（确定性，可复现）
-```
+Windows PowerShell 通常没有 `make`，直接执行右列等价命令即可；两列行为一致（Makefile 只是封装）。
+
+| 目的 | 有 `make` | 无 `make`（Windows PowerShell） |
+| --- | --- | --- |
+| 多轮对话演示，trace 落盘 `eval/reports/traces/` | `make demo` | `python -m src.agent.demo` |
+| 契约与工具单元测试（56 passed） | `make test` | `python -m pytest tests/ -v` |
+| 跑 80 条评测 case，生成分层 v0 报告 | `make eval` | `python -m src.eval.runner` |
+| 重新生成 80 条评测集（确定性，可复现） | `make dataset` | `python -m src.synthesis.rule_based` |
+| 安装依赖 | `make install` | `python -m pip install -r requirements.txt` |
+| 清理 `__pycache__` | `make clean` | `python -c "import shutil,pathlib;[shutil.rmtree(p) for p in pathlib.Path('.').rglob('__pycache__')]"` |
 
 `docker compose up` 尚未实现（C5 API 仅定义契约）。
 

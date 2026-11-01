@@ -1,3 +1,5 @@
+# 运行与测试依赖。Python 3.10+（本地实测 3.13.9），未使用 3.11+ 专有特性。
+# 安装：python -m pip install -r requirements.txt
 pydantic>=2.0
 pyyaml>=6.0
 pytest>=8.0
