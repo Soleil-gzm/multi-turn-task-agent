@@ -31,7 +31,7 @@
 ### 进行中
 
 - milktea 第二场景：通用性验证 4 条硬标准
-- G3 交互界面准备：已梳理参考项目 dialog-sft-forge 的 Gradio 实现与复用分级（[gradio-reference.md](gradio-reference.md)）；待安装并锁定 Gradio 版本后开工
+- G3 交互界面：骨架已落地（[src/ui/app.py](../src/ui/app.py)，Gradio 6.31.0 已锁定，`make ui` 可启动）；待补在线多轮增量接口、评测页与回归测试（参考 [gradio-reference.md](gradio-reference.md)）
 - 真实模型接入：当前 LLM 为 `MockLLMClient`，评测数字只验证链路，不代表模型能力
 
 ### 契约状态（诚实反映代码进度，每个里程碑更新）

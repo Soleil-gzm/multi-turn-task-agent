@@ -36,7 +36,7 @@
 
 - Python **3.10+**：代码仅使用 `from __future__ import annotations`、`X | Y` 等 3.10 语法，未使用 3.11+ 专有特性
 - 本地实测版本 **3.13.9**（`python --version`）；不强制某一小版本，以实际解释器为准
-- `pydantic` / `pyyaml` / `pytest` / `jieba` 为运行与测试必需（`jieba` 供检索层分词）；`fastapi` / `uvicorn` / `httpx` 为服务化阶段预留
+- `pydantic` / `pyyaml` / `pytest` / `jieba` 为运行与测试必需（`jieba` 供检索层分词）；`gradio==6.31.0` 为交互界面依赖（已锁定）；`fastapi` / `uvicorn` / `httpx` 为服务化阶段预留
 - 环境自检（应全部成功）：
 
 ```bash
@@ -59,6 +59,7 @@ Windows PowerShell 通常没有 `make`，直接执行右列等价命令即可；
 | 多轮对话演示，trace 落盘 `eval/reports/traces/` | `make demo` | `python -m src.agent.demo` |
 | 契约与工具单元测试（92 passed） | `make test` | `python -m pytest tests/ -v` |
 | 跑 80 条评测 case，生成分层 v0 报告 | `make eval` | `python -m src.eval.runner` |
+| 启动交互界面（Gradio） | `make ui` | `python -m src.ui.app` |
 | 重新生成 80 条评测集（确定性，可复现） | `make dataset` | `python -m src.synthesis.rule_based` |
 | 由话术 YAML 真源生成 xlsx 模板 | `make templates` | `python scripts/build_talk_template.py` |
 | 安装依赖 | `make install` | `python -m pip install -r requirements.txt` |

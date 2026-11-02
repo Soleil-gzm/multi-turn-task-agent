@@ -24,6 +24,7 @@ multi-turn-task-agent/
 │   ├── guardrails/guardrails.py # C7 输入检测 / 工具侧隔离 / 输出校验
 │   ├── synthesis/rule_based.py # 规则化生成 80 条评测集
 │   ├── eval/                   # contracts.py（C1）、runner.py（评测运行器）
+│   ├── ui/                     # （骨架）app.py：Gradio 交互界面，惰性导入 gradio
 │   ├── adapters/               # （规划）公开数据集适配器
 │   ├── retrieval/              # bm25.py：jieba 分词 + BM25 片段检索（语料 data/knowledge/）
 │   ├── services/               # （规划）FastAPI 服务

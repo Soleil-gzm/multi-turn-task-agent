@@ -8,3 +8,5 @@ fastapi>=0.110
 uvicorn>=0.27
 jieba>=0.42
 openpyxl>=3.1
+# UI：锁定已验证版本（Gradio 6 起 Chatbot 默认 messages 格式，不接受 type 参数）
+gradio==6.31.0

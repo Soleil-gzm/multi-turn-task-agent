@@ -1,0 +1,56 @@
+{
+  "trace_id": "tr_0237a5edc94c",
+  "session_id": "s_b6a836d05af7",
+  "case_id": null,
+  "model": {},
+  "steps": [
+    {
+      "step": 1,
+      "type": "llm_call",
+      "latency_ms": 50,
+      "input_tokens": 495,
+      "output_tokens": 167,
+      "output": {
+        "content": "好的，关于您提到的「你好」，我帮您核实一下。",
+        "tool_calls": null
+      },
+      "tool": null,
+      "args": null,
+      "result": null,
+      "degraded": false,
+      "state_before": null,
+      "state_after": null,
+      "rule": null,
+      "detail": null
+    },
+    {
+      "step": 2,
+      "type": "state_transition",
+      "latency_ms": 1,
+      "input_tokens": null,
+      "output_tokens": null,
+      "output": null,
+      "tool": null,
+      "args": null,
+      "result": null,
+      "degraded": false,
+      "state_before": "INIT",
+      "state_after": "IDENTIFY",
+      "rule": null,
+      "detail": null
+    }
+  ],
+  "totals": {
+    "llm_calls": 1,
+    "tool_calls": 0,
+    "tokens": 662,
+    "latency_ms": 51
+  },
+  "outcome": {
+    "stage": "IDENTIFY",
+    "task_completed": false,
+    "violations": []
+  },
+  "started_at": 1793634360.706909,
+  "ended_at": 1793634360.7079127
+}

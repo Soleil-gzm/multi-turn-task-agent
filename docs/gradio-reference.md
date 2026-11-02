@@ -21,8 +21,8 @@
 | 解释器 | `E:\Anaconda_envs\envs\multi-turn-task-agent\python.exe` |
 | Python | **3.11.18**（conda-forge） |
 | 已装（本项目必需） | pydantic 2.14.2 / PyYAML 6.0.3 / pytest 9.2.0 / httpx 0.28.1 / fastapi 0.162.0 / uvicorn 0.54.0 / jieba 0.42.1 |
-| 已装（顺带可用） | openpyxl |
-| **缺失** | **gradio、pandas、numpy、tqdm** |
+| 已装（顺带可用） | openpyxl、**gradio 6.31.0** |
+| **缺失** | **pandas、numpy、tqdm**（参考项目合成链路需要，本项目不需要） |
 | 测试基线 | `pytest tests/ -q` → 92 passed |
 
 requirements 要求 `pydantic>=2.0 / pyyaml>=6.0 / pytest>=8.0 / httpx>=0.27 / fastapi>=0.110 / uvicorn>=0.27 / jieba>=0.42`，**全部满足**。
@@ -159,7 +159,7 @@ dialogues[] → Chatbot / Code / Radio / 统计 / 下载
 
 | 包 | 参考项目 | 当前环境 | 判断 |
 | --- | --- | --- | --- |
-| gradio | `gradio`（**未锁版本**） | 未安装 | 需新增；**必须先锁版本**再开发 |
+| gradio | `gradio`（**未锁版本**） | **6.31.0（已安装并锁定）** | 本项目 `requirements.txt` 固定该版本；Gradio 6 的 `Chatbot` 不接受 `type` 参数（默认即 messages 格式） |
 | pandas | 有 | 未安装 | 仅参考项目合成链路用；本项目 UI 不需要，**不建议引入** |
 | numpy | 有 | 未安装 | 同上，不建议引入 |
 | tqdm | 有 | 未安装 | 批量生成用；本项目不需要 |
@@ -248,7 +248,7 @@ Banner（复用 A3）
 
 ## 9. 风险与注意事项
 
-1. **Gradio 版本漂移**：`Chatbot` 的 messages 格式在 v4/v5 有差异，锁定版本后再写 UI；不要照抄参考项目的隐式格式。
+1. **Gradio 版本差异（已锁定 6.31.0）**：实测该版本 `Chatbot` **没有 `type` 参数**（默认 messages 格式），`launch()` 仍接受 `theme`/`css`，`queue()` 可用。参考项目代码中的 `gr.Chatbot(...)` 不含 `type`，与 6.x 兼容；若未来升级大版本需重新核对。
 2. **依赖连带升级**：Gradio 可能调整 fastapi/uvicorn/pydantic 版本，安装后必须重跑 `pytest`（92 passed）与 `make eval`（100% / 35% / 0.80）确认无回归。
 3. **不要引入 pandas/numpy**：那是参考项目合成链路的需要，本项目 UI 与评测都不需要。
 4. **import 副作用**：参考项目 import 即生成数据（B5），本项目必须避免，保持「配置预检 fail-fast」风格。

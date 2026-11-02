@@ -1,0 +1,75 @@
+{
+  "trace_id": "tr_27f6081acc1f",
+  "session_id": "s_a45fbe3c0bdd",
+  "case_id": null,
+  "model": {},
+  "steps": [
+    {
+      "step": 1,
+      "type": "llm_call",
+      "latency_ms": 50,
+      "input_tokens": 495,
+      "output_tokens": 167,
+      "output": {
+        "content": "好的，关于您提到的「REC-CORE-001」，我帮您核实一下。",
+        "tool_calls": null
+      },
+      "tool": null,
+      "args": null,
+      "result": null,
+      "degraded": false,
+      "state_before": null,
+      "state_after": null,
+      "rule": null,
+      "detail": null
+    },
+    {
+      "step": 2,
+      "type": "state_transition",
+      "latency_ms": 1,
+      "input_tokens": null,
+      "output_tokens": null,
+      "output": null,
+      "tool": null,
+      "args": null,
+      "result": null,
+      "degraded": false,
+      "state_before": "INIT",
+      "state_after": "IDENTIFY",
+      "rule": null,
+      "detail": null
+    },
+    {
+      "step": 3,
+      "type": "llm_call",
+      "latency_ms": 50,
+      "input_tokens": 722,
+      "output_tokens": 179,
+      "output": {
+        "content": "好的，关于您提到的「核实了吗」，我帮您核实一下。",
+        "tool_calls": null
+      },
+      "tool": null,
+      "args": null,
+      "result": null,
+      "degraded": false,
+      "state_before": null,
+      "state_after": null,
+      "rule": null,
+      "detail": null
+    }
+  ],
+  "totals": {
+    "llm_calls": 2,
+    "tool_calls": 0,
+    "tokens": 1563,
+    "latency_ms": 101
+  },
+  "outcome": {
+    "stage": "IDENTIFY",
+    "task_completed": false,
+    "violations": []
+  },
+  "started_at": 1793634761.2941108,
+  "ended_at": 1793634761.2951334
+}

@@ -1,4 +1,4 @@
-.PHONY: demo dataset eval test templates install clean
+.PHONY: demo dataset eval test templates ui install clean
 
 PYTHON ?= python
 
@@ -16,6 +16,9 @@ eval:
 
 test:
 	$(PYTHON) -m pytest tests/ -v
+
+ui:
+	$(PYTHON) -m src.ui.app
 
 install:
 	$(PYTHON) -m pip install -r requirements.txt
