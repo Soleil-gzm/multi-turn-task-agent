@@ -30,7 +30,7 @@
 
 ## 快速开始
 
-> **当前状态**：W1 框架主干与 W2 数据层已完成——Walking Skeleton 跑通，12 条转移配置与逐条单测、6 个 mock 业务工具、80 条评测 case、话术表（39 条）与 policy 知识库（24 条片段，BM25 检索已接入 `query_policy`）、92 个单测与 v0 基线报告（Mock）。待做：milktea 第二场景、真实模型接入（当前为 `MockLLMClient`）、FastAPI 服务化。各契约实现状态见 [Roadmap · 契约状态](docs/roadmap.md#契约状态诚实反映代码进度每个里程碑更新)。
+> **当前状态**：W1 框架主干与 W2 数据层已完成——Walking Skeleton 跑通，12 条转移配置与逐条单测、6 个 mock 业务工具、80 条评测 case、话术表（39 条）与 policy 知识库（24 条片段，BM25 检索已接入 `query_policy`）、107 个单测与 v0 基线报告（Mock）。待做：milktea 第二场景、真实模型接入（当前为 `MockLLMClient`）、FastAPI 服务化。各契约实现状态见 [Roadmap · 契约状态](docs/roadmap.md#契约状态诚实反映代码进度每个里程碑更新)。
 
 ### 环境准备
 
@@ -41,7 +41,7 @@
 
 ```bash
 python -c "import pydantic, yaml, pytest, jieba; print('deps ok')"
-python -m pytest tests/ -q      # 期望 92 passed
+python -m pytest tests/ -q      # 期望 107 passed
 ```
 
 ```bash
@@ -57,7 +57,7 @@ Windows PowerShell 通常没有 `make`，直接执行右列等价命令即可；
 | 目的 | 有 `make` | 无 `make`（Windows PowerShell） |
 | --- | --- | --- |
 | 多轮对话演示，trace 落盘 `eval/reports/traces/` | `make demo` | `python -m src.agent.demo` |
-| 契约与工具单元测试（92 passed） | `make test` | `python -m pytest tests/ -v` |
+| 契约 / 数据层 / UI 单元测试（107 passed） | `make test` | `python -m pytest tests/ -v` |
 | 跑 80 条评测 case，生成分层 v0 报告 | `make eval` | `python -m src.eval.runner` |
 | 启动交互界面（Gradio） | `make ui` | `python -m src.ui.app` |
 | 重新生成 80 条评测集（确定性，可复现） | `make dataset` | `python -m src.synthesis.rule_based` |
