@@ -9,10 +9,10 @@
 - B 级改造：静态回放 → 在线多轮；配置预览 → 场景摘要 + 转移矩阵；import 无副作用
 - 不引入 pandas / numpy；gradio 仅在 create_demo() 内惰性导入
 
-当前骨架的行为边界（后续 U3/U4 补齐）：
-- 每轮把「全部历史用户消息」重放给 Agent（Agent.run 目前是批量接口），
-  取最后一条非空回复作为本轮 assistant 输出；会话级增量接口落地后再换。
-- 会话达到终态（CLOSED / ESCALATED）后不再调用 Agent，只提示重置。
+当前交互方式（U3）：
+- 每轮只调用 `AgentSession.send(msg)`（会话级增量），不重放历史输入；
+- 会话对象存在 `gr.State` 中，跨轮保留状态机阶段、事实状态与累计 trace；
+- 到达终态（CLOSED / ESCALATED）后 `send` 不再调用 LLM，只提示重置。
 """
 
 from __future__ import annotations
@@ -27,8 +27,6 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 TRACE_DIR = ROOT / "eval" / "reports" / "ui_traces"
 
 SCENARIO_PATH = ROOT / "configs" / "scenarios" / "receivables.yaml"
-
-TERMINAL_STAGES = ("CLOSED", "ESCALATED")
 
 BANNER_HTML = """
 <div class="mta-banner">
@@ -231,7 +229,7 @@ def trace_table_html(trace) -> str:
 def new_turn_state(session_id: str) -> dict[str, Any]:
     return {
         "session_id": session_id,
-        "turns": [],          # 历史用户输入（Agent.run 的入参）
+        "session": None,      # AgentSession（进程内对象，跨轮保留）
         "messages": [],       # Chatbot 展示用
         "ended": False,
         "trace_json": None,   # 落盘路径，供下载
@@ -240,38 +238,46 @@ def new_turn_state(session_id: str) -> dict[str, Any]:
 
 
 def latest_reply(result) -> str:
-    """取本轮回复：AgentResult.replies 里最后一条非空；都空时给占位说明。"""
-    for text in reversed(result.replies):
-        if text.strip():
-            return text
-    return "（已执行工具调用，本回合无自然语言回复）"
+    """取本轮回复：兼容 TurnResult.reply 与 AgentResult.replies。"""
+    replies = getattr(result, "replies", None)
+    if replies:
+        for text in reversed(replies):
+            if text.strip():
+                return text
+    text = (getattr(result, "reply", "") or "").strip()
+    return text or "（已执行工具调用，本回合无自然语言回复）"
 
 
-def turn_summary(result, round_no: int) -> dict[str, Any]:
+def turn_summary(result, round_no: int | None = None) -> dict[str, Any]:
     stage = result.stage
-    offer = None
-    if stage == "NEGOTIATE" and result.trace.steps:
-        # 终态轨迹里最后一个 state_transition 的 after 形如 NEGOTIATE/probe
+    offer = getattr(result, "offer_state", None)
+    if offer is None and stage == "NEGOTIATE":
+        # 批量结果的 AgentResult 没有 offer_state，从最后一个转移反推
         for s in reversed(result.trace.steps):
             if getattr(s.type, "value", "") == "state_transition" and s.state_after:
                 offer = s.state_after.split("/", 1)[1] if "/" in s.state_after else None
                 break
+    tool_count = result.trace.totals.tool_calls if result.trace else len(result.tool_calls)
     return {
         "stage": stage,
-        "round_no": round_no,
+        "round_no": getattr(result, "round_no", round_no),
         "offer_state": offer,
-        "tool_count": len(result.tool_calls),
+        "tool_count": tool_count,
         "violations": len(result.violations),
         "task_completed": result.task_completed,
     }
 
 
 def dump_trace(result) -> str:
-    """把本轮 trace 落盘到 eval/reports/ui_traces/，返回路径字符串。"""
+    """把累计 trace 落盘到 eval/reports/ui_traces/，返回路径字符串。
+
+    兼容 TurnResult（取 .trace 快照）与 Trace 对象本身。
+    """
+    trace = getattr(result, "trace", result)
     TRACE_DIR.mkdir(parents=True, exist_ok=True)
-    path = TRACE_DIR / f"{result.trace.trace_id}.json"
+    path = TRACE_DIR / f"{trace.trace_id}.json"
     path.write_text(
-        result.trace.model_dump_json(indent=2),
+        trace.model_dump_json(indent=2),
         encoding="utf-8",
     )
     return str(path)
@@ -298,40 +304,39 @@ def create_demo(config=None, agent=None):
         agent = Agent(config, build_registry(), get_llm_client())
 
     def _on_submit(user_text: str, state: dict[str, Any] | None):
-        """发送一条用户消息：追加 → 调 Agent → 更新消息 / 状态 / trace / 下载。"""
+        """发送一条用户消息：调会话增量接口 → 更新消息 / 状态 / trace / 下载。"""
         state = state or new_turn_state(_new_session())
+        session = state.get("session") or agent.start(state["session_id"])
         history = list(state["messages"])
 
         text = (user_text or "").strip()
         if not text:
-            return history, state, status_html(state.get("last")), "", None
+            return history, state, status_html(state.get("last")), "", state.get("trace_json")
 
         history.append({"role": "user", "content": text})
-
-        if state["ended"]:
-            history.append({
-                "role": "assistant",
-                "content": "当前会话已结束，请点击「重置会话」后重新开始。",
-            })
-            return history, state, status_html(state.get("last")), "", state.get("trace_json")
-
-        turns = state["turns"] + [text]
+        # 会话已结束的情况由 session.send 自己兜底，返回提示话术
         try:
-            result = agent.run(state["session_id"], turns, case_id=None)
+            result = session.send(text)
         except Exception as e:  # 单轮异常不拖垮界面
             history.append({"role": "assistant", "content": f"运行失败：{e}"})
-            return history, state, status_html(state.get("last")), "", state.get("trace_json")
+            return (
+                history,
+                {**state, "session": session, "messages": history},
+                status_html(state.get("last")),
+                "",
+                state.get("trace_json"),
+            )
 
         history.append({"role": "assistant", "content": latest_reply(result)})
 
         trace_path = dump_trace(result)
         new_state = {
             **state,
-            "turns": turns,
+            "session": session,
             "messages": history,
-            "ended": result.stage in TERMINAL_STAGES,
+            "ended": result.ended,
             "trace_json": trace_path,
-            "last": turn_summary(result, round_no=len(turns)),
+            "last": turn_summary(result, round_no=result.round_no),
         }
         return (
             history,

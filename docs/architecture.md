@@ -325,3 +325,21 @@ print(registry.invoke("query_policy", query="延期最多多少天"))
 **启动预检（fail-fast）**：加载 scenario.yaml 时校验①必填字段与 `tools[].impl` 可导入；②转移表 `from`/`to` 合法（支持 `stage`、`stage/offer_state`、`*` 三种形式：`stage` 须在 `stages` 内，`offer_state` 须在对应 stage 的 `offer_states` 声明内，`*` 仅作通配源）、无孤立或不可达状态；③policy 数值合法；④`escalate_tool` 与 `response.contradiction.tool` 必须在 `tools` 中声明，矛盾告知模板的占位符必须属于该规则的 `fields`，`response.policy_refusal` 的 `pattern` 必须可编译且含 1 个捕获组、`policy_field` 必须在 `policy` 中、`scale` 只能取 `raw/percent`、模板占位符只能是 `{value}` / `{limit}`。任一失败退出码非 0，不静默降级。转移条件使用受限表达式白名单，不使用 `eval`。
 
 **安全边界**：减免 / 延期数值必须来自 `query_policy` 工具返回，模型无权自行决定——权限不靠模型判断。工具返回与检索片段一律视为**不可信数据源**：进入上下文前加定界标记、长度截断并剥离指令片段，不作为指令来源（防间接注入）。
+
+## 7. 会话接口（增量 / 批量）
+
+`src/agent/loop.py` 提供两种调用方式，共享同一套事实状态、转移与 trace 语义：
+
+| 方式 | 接口 | 使用方 | 特点 |
+| --- | --- | --- | --- |
+| 会话级增量 | `agent.start(session_id)` → `session.send(msg)` → `TurnResult` | UI / 后续服务层 | 每轮只跑当前输入，不重放历史；会话对象持有状态机状态、事实计数、累计 trace |
+| 批量 | `agent.run(session_id, user_messages)` → `AgentResult` | demo / eval | 等价于「start + 连续 send」，到达终态即停止，剩余输入不再消费 |
+
+`TurnResult` 字段：`reply`、`stage`、`round_no`、`offer_state`、`tool_calls`（本轮）、`trace`（截至本轮的累计快照，含 `outcome`）、`task_completed`、`violations`（累计）、`ended`、`new_steps`（本轮新增步数）。
+
+两条不变量（有单测覆盖）：
+
+1. **语义等价**：同一串输入经 `run` 与「start + 逐条 send + result()」得到的 `stage`、工具序列、`llm_calls/tool_calls` 完全一致。
+2. **终态封闭**：`ended=True` 后继续 `send` 不会调用 LLM（`llm_calls` 不变、`new_steps=0`），只返回提示话术；`run` 在终态即 `break`。
+
+trace 快照按轮深拷贝，已返回的 `TurnResult` 不会被后续轮次改写。

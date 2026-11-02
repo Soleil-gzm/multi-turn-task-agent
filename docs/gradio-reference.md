@@ -23,7 +23,7 @@
 | 已装（本项目必需） | pydantic 2.14.2 / PyYAML 6.0.3 / pytest 9.2.0 / httpx 0.28.1 / fastapi 0.162.0 / uvicorn 0.54.0 / jieba 0.42.1 |
 | 已装（顺带可用） | openpyxl、**gradio 6.31.0** |
 | **缺失** | **pandas、numpy、tqdm**（参考项目合成链路需要，本项目不需要） |
-| 测试基线 | `pytest tests/ -q` → 107 passed |
+| 测试基线 | `pytest tests/ -q` → 112 passed |
 
 requirements 要求 `pydantic>=2.0 / pyyaml>=6.0 / pytest>=8.0 / httpx>=0.27 / fastapi>=0.110 / uvicorn>=0.27 / jieba>=0.42`，**全部满足**。
 
@@ -170,7 +170,7 @@ dialogues[] → Chatbot / Code / Radio / 统计 / 下载
 **冲突点（按风险排序）**
 
 1. **参考项目未锁 Gradio 版本**：不同大版本的 `Chatbot` 数据格式差异大（tuples vs `{"role","content"}`）；本项目已锁定 6.31.0 并实测通过，升级前需重新核对。
-2. **Gradio 会拉取/约束 fastapi、uvicorn、pydantic、huggingface-hub、pillow 等**；当前环境 fastapi 0.162.0 / pydantic 2.14.2 较新，存在被降级或要求 `<某版本` 的可能 → 安装后必须重跑 `pytest` 确认 107 passed 不被破坏。
+2. **Gradio 会拉取/约束 fastapi、uvicorn、pydantic、huggingface-hub、pillow 等**；当前环境 fastapi 0.162.0 / pydantic 2.14.2 较新，存在被降级或要求 `<某版本` 的可能 → 安装后必须重跑 `pytest` 确认 112 passed 不被破坏。
 3. **Python 版本**：参考项目 `requires-python >=3.9`，当前 3.11.18，兼容。
 4. **无 pandas/numpy 依赖**：这是优势，不要把参考项目的合成依赖带进来。
 
@@ -193,7 +193,7 @@ dialogues[] → Chatbot / Code / Radio / 统计 / 下载
 
 | 编号 | 内容 | 参考位置 | 改造点 |
 | --- | --- | --- | --- |
-| B1 | 静态对话 → 在线对话 | `_dialogue_to_chatbot` [#L411-L427](file:///E:/Coding_python/dialog-sft-forge/demo/app.py#L411-L427) | 改为 `submit` 事件：用户输入追加 → 调 `Agent.run` 单轮 → assistant 追加；system 不再展示 |
+| B1 | 静态对话 → 在线对话 | `_dialogue_to_chatbot` [#L411-L427](file:///E:/Coding_python/dialog-sft-forge/demo/app.py#L411-L427) | 改为 `submit` 事件：用户输入追加 → 调 `session.send` 单轮 → assistant 追加；system 不再展示 |
 | B2 | 页面布局语义 | `create_demo` [#L527-L634](file:///E:/Coding_python/dialog-sft-forge/demo/app.py#L527-L634) | 控制区：生成数/种子 → `session_id` / 场景选择 / 重置；结果区：路径/统计 → 状态机进度 + trace 表 |
 | B3 | 启动参数 | `launch_demo` [#L644-L646](file:///E:/Coding_python/dialog-sft-forge/demo/app.py#L644-L646) | 增加 `server_name/server_port`、`queue()`（长任务需要）、`share` 策略 |
 | B4 | 配置预览 | [#L542-L564](file:///E:/Coding_python/dialog-sft-forge/demo/app.py#L542-L564) | 数据源换成 `ScenarioConfig`：stages / offer_states / 12 条转移 / policy 上限；热力图换「转移表 + 实际触达次数」 |
@@ -216,7 +216,7 @@ dialogues[] → Chatbot / Code / Radio / 统计 / 下载
 
 | 方案 | 做法 | 优点 | 缺点 |
 | --- | --- | --- | --- |
-| A. Gradio 直连 Agent（推荐） | `src/ui/app.py` 内 `from src.agent.loop import Agent`，每轮直接 `agent.run` | 零新服务、当天可跑通；复用 A 级资产最多 | UI 与核心同进程，未来服务化需再拆一层 |
+| A. Gradio 直连 Agent（推荐） | `src/ui/app.py` 内 `from src.agent.loop import Agent`，每轮 `session.send` | 零新服务、当天可跑通；复用 A 级资产最多 | UI 与核心同进程，未来服务化需再拆一层 |
 | B. Gradio → FastAPI | 先做 C5 五接口，再让 Gradio 走 HTTP | 架构最干净 | 依赖 C5 未实现，周期长 |
 | C. 纯 FastAPI + 自写前端 | — | 完全可控 | 放弃 Gradio 生态，成本最高 |
 
@@ -238,9 +238,9 @@ Banner（复用 A3）
 
 | 序 | 任务 | 交付标准 | 依赖 |
 | --- | --- | --- | --- |
-| U1 | 安装并锁定 Gradio | `requirements.txt` 增加固定版本；`python -c "import gradio"` 通过；`pytest` 仍 107 passed | 环境写权限 |
+| U1 | 安装并锁定 Gradio | `requirements.txt` 增加固定版本；`python -c "import gradio"` 通过；`pytest` 仍 112 passed | 环境写权限 |
 | U2 | UI 骨架 | `python -m src.ui.app` 起服务；首页显示场景摘要 + 12 条转移 | U1 |
-| U3 | 在线对话 | 输入 → `Agent.run` 单轮 → 消息追加；状态条实时更新 `stage/round_no` | U2 |
+| U3 | 在线对话（已完成） | 输入 → `session.send` 单轮 → 消息追加；状态条实时更新 `stage/round_no` | U2 |
 | U4 | Trace 面板 | 可展开查看每步 `type/tool/args/result`；可导出 JSON | U3 |
 | U5 | 评测页（可选） | 读 `eval/reports/v0_baseline.json` 渲染 6 项指标 + 分层表 | U4 |
 
@@ -249,7 +249,7 @@ Banner（复用 A3）
 ## 9. 风险与注意事项
 
 1. **Gradio 版本差异（已锁定 6.31.0）**：实测该版本 `Chatbot` **没有 `type` 参数**（默认 messages 格式），`launch()` 仍接受 `theme`/`css`，`queue()` 可用。参考项目代码中的 `gr.Chatbot(...)` 不含 `type`，与 6.x 兼容；若未来升级大版本需重新核对。
-2. **依赖连带升级**：Gradio 可能调整 fastapi/uvicorn/pydantic 版本，安装后必须重跑 `pytest`（107 passed）与 `make eval`（100% / 35% / 0.80）确认无回归。
+2. **依赖连带升级**：Gradio 可能调整 fastapi/uvicorn/pydantic 版本，安装后必须重跑 `pytest`（112 passed）与 `make eval`（100% / 35% / 0.80）确认无回归。
 3. **不要引入 pandas/numpy**：那是参考项目合成链路的需要，本项目 UI 与评测都不需要。
 4. **import 副作用**：参考项目 import 即生成数据（B5），本项目必须避免，保持「配置预检 fail-fast」风格。
 5. **临时文件**：`DownloadButton` 用 `delete=False` 生成文件，长期运行会累积；建议落到 `eval/reports/` 或加清理。

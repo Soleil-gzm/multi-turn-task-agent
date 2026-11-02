@@ -117,7 +117,8 @@ class TestSessionHelpers:
     def test_new_turn_state_defaults(self):
         state = ui.new_turn_state("s_x")
         assert state["session_id"] == "s_x"
-        assert state["turns"] == [] and state["messages"] == []
+        assert state["session"] is None
+        assert state["messages"] == []
         assert state["ended"] is False
         assert state["trace_json"] is None and state["last"] is None
 

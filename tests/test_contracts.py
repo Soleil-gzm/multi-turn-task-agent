@@ -698,6 +698,69 @@ class TestPolicyRefusal:
         assert r.tool_calls.count("escalate") == 1
 
 
+class TestAgentSessionIncremental:
+    """U3：会话级增量接口——每轮只跑当前输入，且与批量接口语义一致。"""
+
+    def setup_method(self):
+        self.cfg = load_config(str(CONFIG_PATH))
+        self.agent = Agent(self.cfg, build_registry(), MockLLMClient())
+        self.msgs = ["你好", "合同号 HT-Y2026-012", "我想分期 3 期", "好的，我同意"]
+
+    def test_send_per_turn_updates_state(self):
+        session = self.agent.start(new_session_id(), case_id="T-SESSION")
+        r1 = session.send(self.msgs[0])
+        assert r1.round_no == 1 and r1.new_steps > 0
+
+        r2 = session.send(self.msgs[1])
+        assert r2.round_no == 2
+        assert r2.stage == "NEGOTIATE"
+        assert r2.offer_state in self.cfg.state_machine.offer_states["NEGOTIATE"]
+
+        session.send(self.msgs[2])
+        r4 = session.send(self.msgs[3])
+        assert r4.stage == "CLOSED"
+        assert r4.ended is True and r4.task_completed is True
+
+    def test_incremental_matches_batch(self):
+        batch = self.agent.run(new_session_id(), self.msgs)
+
+        session = self.agent.start(new_session_id())
+        for msg in self.msgs:
+            session.send(msg)
+        incremental = session.result()
+
+        assert incremental.stage == batch.stage
+        assert incremental.tool_calls == batch.tool_calls
+        assert incremental.trace.totals.llm_calls == batch.trace.totals.llm_calls
+        assert incremental.trace.totals.tool_calls == batch.trace.totals.tool_calls
+
+    def test_send_after_terminal_skips_llm(self):
+        session = self.agent.start(new_session_id())
+        for msg in self.msgs:
+            session.send(msg)
+        before = session.builder.trace.totals.llm_calls
+
+        extra = session.send("再补充一句")
+        assert extra.ended is True
+        assert extra.new_steps == 0
+        assert session.builder.trace.totals.llm_calls == before
+        assert "已结束" in extra.reply
+
+    def test_turn_snapshot_is_isolated(self):
+        session = self.agent.start(new_session_id())
+        first = session.send(self.msgs[0])
+        steps_after_first = len(first.trace.steps)
+        session.send(self.msgs[1])
+        # 后续轮次不应改变已返回的快照
+        assert len(first.trace.steps) == steps_after_first
+
+    def test_batch_stops_at_terminal(self):
+        msgs = ["你好", "我不记得合同号", "我真的不记得合同号", "多余的一轮"]
+        r = self.agent.run(new_session_id(), msgs, case_id="T-STOP")
+        assert r.stage == "ESCALATED"
+        assert r.trace.totals.llm_calls == 3  # 第 4 条不再调用
+
+
 class TestMockRouting:
     """Mock 关键词路由需覆盖延期与对账争议，否则对应 case 无法按 oracle 收敛。"""
 
