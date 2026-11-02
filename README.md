@@ -30,7 +30,7 @@
 
 ## 快速开始
 
-> **当前状态**：W1 框架主干与 W2 数据层已完成——Walking Skeleton 跑通，12 条转移配置与逐条单测、6 个 mock 业务工具、80 条评测 case、话术表（39 条）与 policy 知识库（24 条片段，BM25 检索已接入 `query_policy`）、92 个单测与 v0 基线报告（Mock）。待做：milktea 第二场景、真实模型接入（当前为 `MockLLMClient`）、FastAPI 服务化、prior-art 对照。各契约实现状态见 [Roadmap · 契约状态](docs/roadmap.md#契约状态诚实反映代码进度每个里程碑更新)。
+> **当前状态**：W1 框架主干与 W2 数据层已完成——Walking Skeleton 跑通，12 条转移配置与逐条单测、6 个 mock 业务工具、80 条评测 case、话术表（39 条）与 policy 知识库（24 条片段，BM25 检索已接入 `query_policy`）、92 个单测与 v0 基线报告（Mock）。待做：milktea 第二场景、真实模型接入（当前为 `MockLLMClient`）、FastAPI 服务化。各契约实现状态见 [Roadmap · 契约状态](docs/roadmap.md#契约状态诚实反映代码进度每个里程碑更新)。
 
 ### 环境准备
 
@@ -124,6 +124,7 @@ print(result.trace.totals)
 | [评测设计](docs/eval-design.md) | 评测对象、三级评测方法、指标清单、可复现性条款 |
 | [方案评审与细化](docs/方案评审与细化.md) | 数据集选型对比、工程契约规范、数据流转与模块依赖、阶段与验收 |
 | [Roadmap](docs/roadmap.md) | 当前状态、契约状态、MVP / Stretch 分层、明确不做的取舍 |
+| [Prior-art 对照](docs/prior-art.md) | RiSAWOZ / ABCD / τ-bench 三份公开参照的职责边界与逐项对照清单（只读参照，不接入数据） |
 
 ---
 
