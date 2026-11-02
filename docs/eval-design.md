@@ -132,4 +132,6 @@
 | `by_layer` | 按 `core` / `boundary` / `adversarial` 分层的 `count` / `stage_match_rate` / `avg_tool_score` |
 | `results[]` | 每条 case 的 `case_id`、`layer`、`stage`、`expected_stage`、`stage_match`、`task_completed`、`tool_score`、`tool_calls`、`violations`、`contradiction_followed`、`policy_refusal_followed`（后两者 `null` 表示不适用） |
 
+> **UI 评测页**：`src/ui/app.py` 的「评测」Tab 读取同一份 `v0_baseline.json`，渲染六项指标与分层表；「运行 80 条评测」按钮调用 `src.eval.runner.main()` 后刷新。UI 与命令行共用同一报告与同一口径，不另算指标。
+
 > **口径提醒**：当前 `model=mock-llm`，报告数字只用于验证「评测集 → Agent → 指标 → 报告」链路是否打通，不可作为模型能力基线，也不进版本间 Δ 表。

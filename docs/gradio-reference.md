@@ -23,7 +23,7 @@
 | 已装（本项目必需） | pydantic 2.14.2 / PyYAML 6.0.3 / pytest 9.2.0 / httpx 0.28.1 / fastapi 0.162.0 / uvicorn 0.54.0 / jieba 0.42.1 |
 | 已装（顺带可用） | openpyxl、**gradio 6.31.0** |
 | **缺失** | **pandas、numpy、tqdm**（参考项目合成链路需要，本项目不需要） |
-| 测试基线 | `pytest tests/ -q` → 112 passed |
+| 测试基线 | `pytest tests/ -q` → 128 passed（含 UI 构建与启动端到端测试） |
 
 requirements 要求 `pydantic>=2.0 / pyyaml>=6.0 / pytest>=8.0 / httpx>=0.27 / fastapi>=0.110 / uvicorn>=0.27 / jieba>=0.42`，**全部满足**。
 
@@ -170,7 +170,7 @@ dialogues[] → Chatbot / Code / Radio / 统计 / 下载
 **冲突点（按风险排序）**
 
 1. **参考项目未锁 Gradio 版本**：不同大版本的 `Chatbot` 数据格式差异大（tuples vs `{"role","content"}`）；本项目已锁定 6.31.0 并实测通过，升级前需重新核对。
-2. **Gradio 会拉取/约束 fastapi、uvicorn、pydantic、huggingface-hub、pillow 等**；当前环境 fastapi 0.162.0 / pydantic 2.14.2 较新，存在被降级或要求 `<某版本` 的可能 → 安装后必须重跑 `pytest` 确认 112 passed 不被破坏。
+2. **Gradio 会拉取/约束 fastapi、uvicorn、pydantic、huggingface-hub、pillow 等**；当前环境 fastapi 0.162.0 / pydantic 2.14.2 较新，存在被降级或要求 `<某版本` 的可能 → 安装后必须重跑 `pytest` 确认 128 passed 不被破坏。
 3. **Python 版本**：参考项目 `requires-python >=3.9`，当前 3.11.18，兼容。
 4. **无 pandas/numpy 依赖**：这是优势，不要把参考项目的合成依赖带进来。
 
@@ -238,18 +238,18 @@ Banner（复用 A3）
 
 | 序 | 任务 | 交付标准 | 依赖 |
 | --- | --- | --- | --- |
-| U1 | 安装并锁定 Gradio | `requirements.txt` 增加固定版本；`python -c "import gradio"` 通过；`pytest` 仍 112 passed | 环境写权限 |
-| U2 | UI 骨架 | `python -m src.ui.app` 起服务；首页显示场景摘要 + 12 条转移 | U1 |
+| U1 | 安装并锁定 Gradio | `requirements.txt` 增加固定版本；`python -c "import gradio"` 通过；`pytest` 仍 128 passed | 环境写权限 |
+| U2 | UI 骨架（已完成） | `python -m src.ui.app` 起服务；首页显示场景摘要 + 12 条转移 | U1 |
 | U3 | 在线对话（已完成） | 输入 → `session.send` 单轮 → 消息追加；状态条实时更新 `stage/round_no` | U2 |
-| U4 | Trace 面板 | 可展开查看每步 `type/tool/args/result`；可导出 JSON | U3 |
-| U5 | 评测页（可选） | 读 `eval/reports/v0_baseline.json` 渲染 6 项指标 + 分层表 | U4 |
+| U4 | Trace 面板（已完成） | 可展开查看每步 `type/tool/args/result`；可导出 JSON | U3 |
+| U5 | 评测页（已完成） | 读 `eval/reports/v0_baseline.json` 渲染六项指标 + 分层表；「运行 80 条评测」按钮可刷新 | U4 |
 
 > 验收口径沿用项目惯例：一条命令起服务、一次完整对话到 `CLOSED`、trace 面板可见 14 步、退出后无残留临时文件。
 
 ## 9. 风险与注意事项
 
 1. **Gradio 版本差异（已锁定 6.31.0）**：实测该版本 `Chatbot` **没有 `type` 参数**（默认 messages 格式），`launch()` 仍接受 `theme`/`css`，`queue()` 可用。参考项目代码中的 `gr.Chatbot(...)` 不含 `type`，与 6.x 兼容；若未来升级大版本需重新核对。
-2. **依赖连带升级**：Gradio 可能调整 fastapi/uvicorn/pydantic 版本，安装后必须重跑 `pytest`（112 passed）与 `make eval`（100% / 35% / 0.80）确认无回归。
+2. **依赖连带升级**：Gradio 可能调整 fastapi/uvicorn/pydantic 版本，安装后必须重跑 `pytest`（128 passed）与 `make eval`（100% / 35% / 0.80）确认无回归。
 3. **不要引入 pandas/numpy**：那是参考项目合成链路的需要，本项目 UI 与评测都不需要。
 4. **import 副作用**：参考项目 import 即生成数据（B5），本项目必须避免，保持「配置预检 fail-fast」风格。
 5. **临时文件**：`DownloadButton` 用 `delete=False` 生成文件，长期运行会累积；建议落到 `eval/reports/` 或加清理。

@@ -284,6 +284,174 @@ def dump_trace(result) -> str:
 
 
 # ---------------------------------------------------------------------------
+# 评测报告渲染（读取 eval/reports/v0_baseline.json）
+# ---------------------------------------------------------------------------
+
+REPORT_PATH = ROOT / "eval" / "reports" / "v0_baseline.json"
+
+
+def load_report(path: str | Path | None = None) -> dict[str, Any] | None:
+    """读取评测报告；文件缺失或解析失败返回 None。"""
+    p = Path(path) if path else REPORT_PATH
+    if not p.exists():
+        return None
+    try:
+        return json.loads(p.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return None
+
+
+def _fmt_pct(value: Any) -> str:
+    return "—" if value is None else f"{value:.1%}"
+
+
+def _fmt_num(value: Any, digits: int = 2) -> str:
+    return "—" if value is None else f"{value:.{digits}f}"
+
+
+def metrics_html(report: dict[str, Any] | None) -> str:
+    """六项指标卡：终态 / 完成率 / 工具均分 / 工具覆盖 / 矛盾告知 / 超政策拒绝。"""
+    if not report:
+        return (
+            '<div class="mta-card"><div class="mta-card-title">评测报告</div>'
+            '<div class="mta-card-item">尚未找到 eval/reports/v0_baseline.json，'
+            "请点击「运行 80 条评测」或先执行 make eval。</div></div>"
+        )
+
+    contra = report.get("contradiction") or {}
+    refusal = report.get("policy_refusal") or {}
+    coverage = report.get("tool_coverage") or {}
+    untouched = report.get("untouched_tools") or []
+    total_tools = len(coverage) + len(untouched)
+
+    cards = [
+        ("终态匹配率", _fmt_pct(report.get("stage_match_rate"))),
+        ("任务完成率", _fmt_pct(report.get("task_completion_rate"))),
+        ("工具序列均分", _fmt_num(report.get("avg_tool_score"))),
+        ("工具覆盖", f"{len(coverage)}/{total_tools}"),
+        (
+            "矛盾告知率",
+            f"{_fmt_pct(contra.get('rate'))}"
+            f"（{contra.get('followed', 0)}/{contra.get('applicable', 0)}）",
+        ),
+        (
+            "超政策拒绝率",
+            f"{_fmt_pct(refusal.get('rate'))}"
+            f"（{refusal.get('followed', 0)}/{refusal.get('applicable', 0)}）",
+        ),
+    ]
+    body = "".join(f'<div class="mta-stat">{_esc(k)} <b>{_esc(v)}</b></div>' for k, v in cards)
+    untouch_note = (
+        f'<div class="mta-card-item" style="margin-top:6px">未触达工具：{_esc("、".join(untouched))}</div>'
+        if untouched
+        else ""
+    )
+    return (
+        f'<div class="mta-card"><div class="mta-card-title">评测指标</div>'
+        f'<div class="mta-stats">{body}</div>'
+        f'<div class="mta-card-item">model={_esc(report.get("model", "-"))} · '
+        f'样本数={_esc(report.get("total_cases", "-"))}</div>{untouch_note}</div>'
+    )
+
+
+def layer_table_html(report: dict[str, Any] | None) -> str:
+    """分层结果表：core / boundary / adversarial。"""
+    by_layer = (report or {}).get("by_layer") or {}
+    if not by_layer:
+        return ""
+    rows = "".join(
+        f"<tr><td>{_esc(layer)}</td><td>{_esc(s.get('count', '-'))}</td>"
+        f"<td>{_esc(_fmt_pct(s.get('stage_match_rate')))}</td>"
+        f"<td>{_esc(_fmt_num(s.get('avg_tool_score')))}</td></tr>"
+        for layer, s in by_layer.items()
+    )
+    return (
+        '<div class="mta-trace"><table><thead><tr>'
+        "<th>layer</th><th>样本</th><th>终态匹配</th><th>工具均分</th>"
+        f"</tr></thead><tbody>{rows}</tbody></table></div>"
+    )
+
+
+def eval_page_html(report: dict[str, Any] | None) -> str:
+    """评测页整体 HTML：指标卡 + 分层表 + 口径提醒。"""
+    note = (
+        '<div class="mta-card-item" style="margin:6px 0">'
+        "口径提醒：当前 model=mock-llm，数字只验证「评测集 → Agent → 指标 → 报告」链路，"
+        "不代表模型能力，也不进版本间 Δ 表。</div>"
+    )
+    return metrics_html(report) + layer_table_html(report) + note
+
+
+def run_eval() -> dict[str, Any] | None:
+    """跑一遍 80 条评测并返回新报告（UI 按钮用，耗时约 1–2 秒）。"""
+    from src.eval import runner
+
+    runner.main()
+    return load_report()
+
+
+# ---------------------------------------------------------------------------
+# 会话回调（模块级，便于不启动界面也能测试）
+# ---------------------------------------------------------------------------
+
+def submit_turn(
+    agent,
+    state: dict[str, Any] | None,
+    user_text: str,
+) -> tuple[list[dict[str, Any]], dict[str, Any], str, str, str | None]:
+    """处理一轮输入，返回 (聊天记录, 新状态, 状态条 HTML, Trace HTML, trace 路径)。
+
+    与 Gradio 的 outputs 顺序一一对应；不依赖 gradio，可直接单测。
+    """
+    state = state or new_turn_state(_new_session())
+    session = state.get("session") or agent.start(state["session_id"])
+    history = list(state["messages"])
+
+    text = (user_text or "").strip()
+    if not text:
+        return history, state, status_html(state.get("last")), "", state.get("trace_json")
+
+    history.append({"role": "user", "content": text})
+    # 会话已结束的情况由 session.send 自己兜底，返回提示话术
+    try:
+        result = session.send(text)
+    except Exception as e:  # 单轮异常不拖垮界面
+        history.append({"role": "assistant", "content": f"运行失败：{e}"})
+        return (
+            history,
+            {**state, "session": session, "messages": history},
+            status_html(state.get("last")),
+            "",
+            state.get("trace_json"),
+        )
+
+    history.append({"role": "assistant", "content": latest_reply(result)})
+
+    trace_path = dump_trace(result)
+    new_state = {
+        **state,
+        "session": session,
+        "messages": history,
+        "ended": result.ended,
+        "trace_json": trace_path,
+        "last": turn_summary(result, round_no=result.round_no),
+    }
+    return (
+        history,
+        new_state,
+        status_html(new_state["last"]),
+        trace_table_html(result.trace),
+        trace_path,
+    )
+
+
+def reset_state() -> tuple[list, dict[str, Any], str, str, None]:
+    """重置会话，返回与 submit_turn 相同长度的空结果。"""
+    state = new_turn_state(_new_session())
+    return [], state, status_html(None), "", None
+
+
+# ---------------------------------------------------------------------------
 # Gradio 界面（惰性导入 gradio）
 # ---------------------------------------------------------------------------
 
@@ -303,95 +471,67 @@ def create_demo(config=None, agent=None):
 
         agent = Agent(config, build_registry(), get_llm_client())
 
-    def _on_submit(user_text: str, state: dict[str, Any] | None):
-        """发送一条用户消息：调会话增量接口 → 更新消息 / 状态 / trace / 下载。"""
-        state = state or new_turn_state(_new_session())
-        session = state.get("session") or agent.start(state["session_id"])
-        history = list(state["messages"])
-
-        text = (user_text or "").strip()
-        if not text:
-            return history, state, status_html(state.get("last")), "", state.get("trace_json")
-
-        history.append({"role": "user", "content": text})
-        # 会话已结束的情况由 session.send 自己兜底，返回提示话术
-        try:
-            result = session.send(text)
-        except Exception as e:  # 单轮异常不拖垮界面
-            history.append({"role": "assistant", "content": f"运行失败：{e}"})
-            return (
-                history,
-                {**state, "session": session, "messages": history},
-                status_html(state.get("last")),
-                "",
-                state.get("trace_json"),
-            )
-
-        history.append({"role": "assistant", "content": latest_reply(result)})
-
-        trace_path = dump_trace(result)
-        new_state = {
-            **state,
-            "session": session,
-            "messages": history,
-            "ended": result.ended,
-            "trace_json": trace_path,
-            "last": turn_summary(result, round_no=result.round_no),
-        }
-        return (
-            history,
-            new_state,
-            status_html(new_state["last"]),
-            trace_table_html(result.trace),
-            trace_path,
-        )
-
-    def _on_reset():
-        state = new_turn_state(_new_session())
-        return [], state, status_html(None), "", None
-
     with gr.Blocks(title="多轮任务型 Agent") as demo:
         gr.HTML(BANNER_HTML)
 
-        with gr.Row():
-            with gr.Column(scale=1):
-                gr.HTML(scenario_summary_html(config))
-                with gr.Accordion("阶段转移矩阵", open=False):
-                    gr.HTML(
-                        '<div class="mta-card-item" style="margin-bottom:6px">'
-                        '单元格 = stage→stage 的转移条数；通配符（NEGOTIATE/*、*）已展开为多条，'
-                        '因此合计会大于配置里的 12 条规则。</div>'
-                    )
-                    gr.HTML(transition_matrix_html(config))
+        with gr.Tabs():
+            with gr.Tab("对话"):
+                with gr.Row():
+                    with gr.Column(scale=1):
+                        gr.HTML(scenario_summary_html(config))
+                        with gr.Accordion("阶段转移矩阵", open=False):
+                            gr.HTML(
+                                '<div class="mta-card-item" style="margin-bottom:6px">'
+                                '单元格 = stage→stage 的转移条数；通配符（NEGOTIATE/*、*）已展开为多条，'
+                                "因此合计会大于配置里的 12 条规则。</div>"
+                            )
+                            gr.HTML(transition_matrix_html(config))
 
-            with gr.Column(scale=2):
-                # Gradio 6 起 Chatbot 默认即为 messages 格式（role/content），无需 type 参数
-                chatbot = gr.Chatbot(
-                    label="对话",
-                    height=420,
+                    with gr.Column(scale=2):
+                        # Gradio 6 起 Chatbot 默认即为 messages 格式（role/content），无需 type 参数
+                        chatbot = gr.Chatbot(
+                            label="对话",
+                            height=420,
+                        )
+                        with gr.Row():
+                            user_input = gr.Textbox(
+                                placeholder="例如：合同号 HT-Y2026-012",
+                                label="输入",
+                                scale=4,
+                            )
+                            send_btn = gr.Button("发送", variant="primary", scale=1)
+                        with gr.Row():
+                            reset_btn = gr.Button("重置会话")
+
+                        status = gr.HTML(status_html(None))
+
+                with gr.Accordion("轨迹（C6 Trace）", open=False):
+                    trace_html = gr.HTML("")
+                    trace_file = gr.DownloadButton("下载本轮 trace", value=None)
+
+                session_state = gr.State(new_turn_state(_new_session()))
+
+                outputs = [chatbot, session_state, status, trace_html, trace_file]
+                send_btn.click(
+                    lambda text, st: submit_turn(agent, st, text),
+                    inputs=[user_input, session_state],
+                    outputs=outputs,
                 )
+                user_input.submit(
+                    lambda text, st: submit_turn(agent, st, text),
+                    inputs=[user_input, session_state],
+                    outputs=outputs,
+                )
+                reset_btn.click(lambda: reset_state(), inputs=[], outputs=outputs)
+
+            with gr.Tab("评测"):
                 with gr.Row():
-                    user_input = gr.Textbox(
-                        placeholder="例如：合同号 HT-Y2026-012",
-                        label="输入",
-                        scale=4,
-                    )
-                    send_btn = gr.Button("发送", variant="primary", scale=1)
-                with gr.Row():
-                    reset_btn = gr.Button("重置会话")
+                    refresh_btn = gr.Button("刷新报告")
+                    run_btn = gr.Button("运行 80 条评测", variant="primary")
+                eval_html = gr.HTML(eval_page_html(load_report()))
 
-                status = gr.HTML(status_html(None))
-
-        with gr.Accordion("轨迹（C6 Trace）", open=False):
-            trace_html = gr.HTML("")
-            trace_file = gr.DownloadButton("下载本轮 trace", value=None)
-
-        session_state = gr.State(new_turn_state(_new_session()))
-
-        outputs = [chatbot, session_state, status, trace_html, trace_file]
-        send_btn.click(_on_submit, inputs=[user_input, session_state], outputs=outputs)
-        user_input.submit(_on_submit, inputs=[user_input, session_state], outputs=outputs)
-        reset_btn.click(_on_reset, inputs=[], outputs=outputs)
+                refresh_btn.click(lambda: eval_page_html(load_report()), outputs=[eval_html])
+                run_btn.click(lambda: eval_page_html(run_eval()), outputs=[eval_html])
 
     return demo
 

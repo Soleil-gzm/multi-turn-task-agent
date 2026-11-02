@@ -13,6 +13,8 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -161,3 +163,194 @@ class TestSessionHelpers:
         payload = json.loads(path.read_text(encoding="utf-8"))
         assert payload["trace_id"] == result.trace.trace_id
         assert payload["session_id"] == result.trace.session_id
+
+
+# ---------------------------------------------------------------------------
+# 评测页渲染
+# ---------------------------------------------------------------------------
+
+_REPORT = {
+    "model": "mock-llm",
+    "total_cases": 80,
+    "stage_match_rate": 1.0,
+    "task_completion_rate": 0.35,
+    "avg_tool_score": 0.8,
+    "tool_coverage": {f"t{i}": 1 for i in range(6)},
+    "untouched_tools": [],
+    "contradiction": {"applicable": 6, "followed": 6, "rate": 1.0},
+    "policy_refusal": {"applicable": 10, "followed": 10, "rate": 1.0},
+    "by_layer": {
+        "core": {"count": 24, "stage_match_rate": 1.0, "avg_tool_score": 0.8},
+        "boundary": {"count": 16, "stage_match_rate": 1.0, "avg_tool_score": 0.8},
+        "adversarial": {"count": 40, "stage_match_rate": 1.0, "avg_tool_score": 0.8},
+    },
+}
+
+
+class TestEvalPage:
+    def test_metrics_contains_six_items(self):
+        html = ui.metrics_html(_REPORT)
+        for label in ("终态匹配率", "任务完成率", "工具序列均分", "工具覆盖", "矛盾告知率", "超政策拒绝率"):
+            assert label in html
+        assert "100.0%" in html
+        assert "35.0%" in html
+        assert "0.80" in html
+        assert "6/6" in html
+        assert "mock-llm" in html and "80" in html
+
+    def test_metrics_missing_report_shows_hint(self):
+        html = ui.metrics_html(None)
+        assert "v0_baseline.json" in html
+        assert "运行 80 条评测" in html
+
+    def test_metrics_handles_none_rate(self):
+        report = {
+            "stage_match_rate": 1.0,
+            "task_completion_rate": 1.0,
+            "avg_tool_score": 0.8,
+            "tool_coverage": {"a": 1},
+            "untouched_tools": ["b"],
+            "contradiction": {"applicable": 0, "followed": 0, "rate": None},
+            "policy_refusal": {"applicable": 0, "followed": 0, "rate": None},
+        }
+        html = ui.metrics_html(report)
+        assert "—" in html
+        assert "1/2" in html
+        assert "未触达工具" in html
+
+    def test_layer_table_rows(self):
+        html = ui.layer_table_html(_REPORT)
+        for layer in ("core", "boundary", "adversarial"):
+            assert layer in html
+        assert html.count("<tr>") == 4  # 表头 + 3 层
+
+    def test_layer_table_empty(self):
+        assert ui.layer_table_html(None) == ""
+        assert ui.layer_table_html({"by_layer": {}}) == ""
+
+    def test_eval_page_has_disclaimer(self):
+        html = ui.eval_page_html(_REPORT)
+        assert "不代表模型能力" in html
+
+    def test_load_report_real_file(self):
+        report = ui.load_report()
+        assert report is not None
+        assert report["total_cases"] == 80
+
+    def test_load_report_missing(self, tmp_path):
+        assert ui.load_report(tmp_path / "nope.json") is None
+
+    def test_load_report_bad_json(self, tmp_path):
+        p = tmp_path / "bad.json"
+        p.write_text("{not json", encoding="utf-8")
+        assert ui.load_report(p) is None
+
+
+# ---------------------------------------------------------------------------
+# UI 回调（端到端：不启动界面）
+# ---------------------------------------------------------------------------
+
+class TestSubmitTurn:
+    MSGS = ["你好", "合同号 HT-Y2026-012", "我想分期 3 期", "好的，我同意"]
+
+    def setup_method(self):
+        self.agent = _agent()
+
+    def test_full_conversation(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(ui, "TRACE_DIR", tmp_path)
+        state = ui.new_turn_state(new_session_id())
+        history: list = []
+        for msg in self.MSGS:
+            history, state, status, trace, path = ui.submit_turn(self.agent, state, msg)
+
+        assert len(history) == 8  # 4 轮 user + assistant
+        assert state["ended"] is True
+        assert state["last"]["stage"] == "CLOSED"
+        assert state["last"]["round_no"] == 4
+        assert "CLOSED" in status
+        assert "state_transition" in trace
+        assert Path(state["trace_json"]).exists()
+        assert path == state["trace_json"]
+
+    def test_empty_input_keeps_state(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(ui, "TRACE_DIR", tmp_path)
+        state = ui.new_turn_state(new_session_id())
+        history, new_state, _, trace, path = ui.submit_turn(self.agent, state, "   ")
+        assert history == []
+        assert new_state is state
+        assert trace == "" and path is None
+        assert not any(tmp_path.iterdir())
+
+    def test_send_after_terminal_is_guarded(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(ui, "TRACE_DIR", tmp_path)
+        state = ui.new_turn_state(new_session_id())
+        for msg in self.MSGS:
+            _, state, _, _, _ = ui.submit_turn(self.agent, state, msg)
+
+        session = state["session"]
+        before = session.builder.trace.totals.llm_calls
+        history, state, status, _, _ = ui.submit_turn(self.agent, state, "再说一句")
+
+        assert history[-1]["content"].find("已结束") >= 0
+        assert session.builder.trace.totals.llm_calls == before
+        assert state["ended"] is True
+
+    def test_reset_clears_session(self):
+        history, state, status, trace, path = ui.reset_state()
+        assert history == [] and trace == "" and path is None
+        assert state["session"] is None and state["messages"] == []
+        assert "等待输入" in status
+
+    def test_output_arity_matches_gradio_outputs(self, tmp_path, monkeypatch):
+        """回调返回长度必须与 create_demo 的 outputs（5 个）一致。"""
+        monkeypatch.setattr(ui, "TRACE_DIR", tmp_path)
+        state = ui.new_turn_state(new_session_id())
+        assert len(ui.submit_turn(self.agent, state, "你好")) == 5
+        assert len(ui.reset_state()) == 5
+
+
+# ---------------------------------------------------------------------------
+# Gradio 端到端（构建 + 启动）
+# ---------------------------------------------------------------------------
+
+class TestGradioEndToEnd:
+    def test_build_demo(self):
+        pytest.importorskip("gradio")
+        demo = ui.create_demo()
+        assert type(demo).__name__ == "Blocks"
+        assert len(demo.blocks) > 20
+
+    def test_launch_and_http(self):
+        """真实起一个本地服务并请求首页，验证 UI 可被访问。"""
+        gr = pytest.importorskip("gradio")
+        import socket
+
+        import httpx
+
+        with socket.socket() as s:
+            s.bind(("127.0.0.1", 0))
+            port = s.getsockname()[1]
+
+        demo = ui.create_demo()
+        demo.queue()
+        demo.launch(
+            prevent_thread_lock=True,
+            server_name="127.0.0.1",
+            server_port=port,
+            quiet=True,
+            css=ui.CSS,
+            theme=gr.themes.Soft(primary_hue="green", neutral_hue="stone"),
+        )
+        try:
+            code = None
+            for _ in range(40):
+                try:
+                    code = httpx.get(f"http://127.0.0.1:{port}/", timeout=2).status_code
+                    break
+                except Exception:
+                    import time
+
+                    time.sleep(0.25)
+            assert code == 200
+        finally:
+            demo.close()
