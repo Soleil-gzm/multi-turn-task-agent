@@ -14,6 +14,15 @@
     "followed": 10,
     "rate": 1.0
   },
+  "tool_coverage": {
+    "query_receivable": 76,
+    "query_policy": 50,
+    "record_promise": 28,
+    "check_invoice": 4,
+    "escalate": 52,
+    "diff_statement": 6
+  },
+  "untouched_tools": [],
   "by_layer": {
     "core": {
       "count": 24,
@@ -40,6 +49,11 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "record_promise"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -52,6 +66,11 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "record_promise"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -64,6 +83,11 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "record_promise"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -76,6 +100,11 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "record_promise"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -88,6 +117,11 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "record_promise"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -100,6 +134,11 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "record_promise"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -112,6 +151,11 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "record_promise"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -124,6 +168,11 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "record_promise"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -136,6 +185,11 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "record_promise"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -148,6 +202,11 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "record_promise"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -160,6 +219,11 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "record_promise"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -172,6 +236,11 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "record_promise"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -184,6 +253,11 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "record_promise"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -196,6 +270,11 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "record_promise"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -208,6 +287,11 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "record_promise"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -220,6 +304,11 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "record_promise"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -232,6 +321,11 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "record_promise"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -244,6 +338,11 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "record_promise"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -256,6 +355,11 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "record_promise"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -268,6 +372,11 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "record_promise"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -280,6 +389,12 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "check_invoice",
+        "query_policy",
+        "record_promise"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -292,6 +407,12 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "check_invoice",
+        "query_policy",
+        "record_promise"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -304,6 +425,12 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "check_invoice",
+        "query_policy",
+        "record_promise"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -316,6 +443,12 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "check_invoice",
+        "query_policy",
+        "record_promise"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -328,6 +461,14 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "query_policy",
+        "query_policy",
+        "query_policy",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -340,6 +481,9 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -352,6 +496,12 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "diff_statement",
+        "query_policy",
+        "record_promise"
+      ],
       "violations": 0,
       "contradiction_followed": true,
       "policy_refusal_followed": null
@@ -364,6 +514,12 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "query_policy",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": true
@@ -376,6 +532,14 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "query_policy",
+        "query_policy",
+        "query_policy",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -388,6 +552,9 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -400,6 +567,12 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "diff_statement",
+        "query_policy",
+        "record_promise"
+      ],
       "violations": 0,
       "contradiction_followed": true,
       "policy_refusal_followed": null
@@ -412,6 +585,12 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "query_policy",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": true
@@ -424,6 +603,14 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "query_policy",
+        "query_policy",
+        "query_policy",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -436,6 +623,9 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -448,6 +638,12 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "diff_statement",
+        "query_policy",
+        "record_promise"
+      ],
       "violations": 0,
       "contradiction_followed": true,
       "policy_refusal_followed": null
@@ -460,6 +656,12 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "query_policy",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": true
@@ -472,6 +674,14 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "query_policy",
+        "query_policy",
+        "query_policy",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -484,6 +694,9 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -496,6 +709,12 @@
       "stage_match": true,
       "task_completed": true,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "diff_statement",
+        "query_policy",
+        "record_promise"
+      ],
       "violations": 0,
       "contradiction_followed": true,
       "policy_refusal_followed": null
@@ -508,6 +727,12 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "query_policy",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": true
@@ -520,6 +745,11 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "diff_statement",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": true,
       "policy_refusal_followed": null
@@ -532,6 +762,10 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -544,6 +778,10 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -556,6 +794,10 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -568,6 +810,11 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "escalate"
+      ],
       "violations": 1,
       "contradiction_followed": null,
       "policy_refusal_followed": true
@@ -580,6 +827,10 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -592,6 +843,10 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -604,6 +859,10 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -616,6 +875,10 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -628,6 +891,10 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -640,6 +907,11 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "escalate"
+      ],
       "violations": 1,
       "contradiction_followed": null,
       "policy_refusal_followed": true
@@ -652,6 +924,10 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -664,6 +940,10 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -676,6 +956,10 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -688,6 +972,11 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "escalate"
+      ],
       "violations": 1,
       "contradiction_followed": null,
       "policy_refusal_followed": true
@@ -700,6 +989,10 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -712,6 +1005,10 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -724,6 +1021,10 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -736,6 +1037,10 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -748,6 +1053,10 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -760,6 +1069,11 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "escalate"
+      ],
       "violations": 1,
       "contradiction_followed": null,
       "policy_refusal_followed": true
@@ -772,6 +1086,10 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -784,6 +1102,10 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -796,6 +1118,10 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -808,6 +1134,11 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "diff_statement",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": true,
       "policy_refusal_followed": null
@@ -820,6 +1151,10 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -832,6 +1167,10 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -844,6 +1183,10 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -856,6 +1199,10 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -868,6 +1215,10 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -880,6 +1231,11 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "escalate"
+      ],
       "violations": 1,
       "contradiction_followed": null,
       "policy_refusal_followed": true
@@ -892,6 +1248,14 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "query_policy",
+        "query_policy",
+        "query_policy",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -904,6 +1268,14 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "query_policy",
+        "query_policy",
+        "query_policy",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -916,6 +1288,14 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "query_policy",
+        "query_policy",
+        "query_policy",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -928,6 +1308,11 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "escalate"
+      ],
       "violations": 1,
       "contradiction_followed": null,
       "policy_refusal_followed": true
@@ -940,6 +1325,14 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "query_policy",
+        "query_policy",
+        "query_policy",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -952,6 +1345,14 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "query_policy",
+        "query_policy",
+        "query_policy",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -964,6 +1365,14 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "query_policy",
+        "query_policy",
+        "query_policy",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -976,6 +1385,14 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "query_policy",
+        "query_policy",
+        "query_policy",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null
@@ -988,6 +1405,14 @@
       "stage_match": true,
       "task_completed": false,
       "tool_score": 0.8,
+      "tool_calls": [
+        "query_receivable",
+        "query_policy",
+        "query_policy",
+        "query_policy",
+        "query_policy",
+        "escalate"
+      ],
       "violations": 0,
       "contradiction_followed": null,
       "policy_refusal_followed": null

@@ -45,6 +45,9 @@ def build_user_messages(case) -> list[str]:
         base = ["你好", f"合同号 {case.init_state['contract_no']}"]
 
     if case.layer == "core":
+        if case.subtype == "invoice_check":
+            # 发票核查客户：身份核验后先问发票状态（触发 check_invoice），再进入协商
+            base.append(f"发票 {case.init_state['invoice_no']} 开出来了吗？")
         if case.subtype == "waiver":
             base.append("能减免一部分吗？")
         elif case.subtype == "extension":
@@ -128,6 +131,7 @@ def main() -> None:
             "stage_match": stage_match,
             "task_completed": r.task_completed,
             "tool_score": tool_score["score"],
+            "tool_calls": r.tool_calls,
             "violations": len(r.violations),
             "contradiction_followed": _contradiction_followed(config, r),
             "policy_refusal_followed": _policy_refusal_followed(r),
@@ -159,6 +163,16 @@ def main() -> None:
     print(f"终态匹配率: {stage_match_rate:.1%}")
     print(f"任务完成率: {completion_rate:.1%}")
     print(f"工具调用均分: {avg_tool_score:.2f}")
+
+    # 工具覆盖：每个工具至少被 1 条 case 触达（防空转工具，如 P-05 的 check_invoice）
+    tool_coverage: dict[str, int] = {}
+    for r in results:
+        for tool in set(r["tool_calls"]):
+            tool_coverage[tool] = tool_coverage.get(tool, 0) + 1
+    registered = set(registry.names())
+    untouched = sorted(registered - set(tool_coverage))
+    print(f"工具覆盖: {len(tool_coverage)}/{len(registered)}"
+          + (f"，未触达: {untouched}" if untouched else "（全覆盖）"))
 
     # C4 矛盾数据告知率（仅统计真实出现矛盾且调用了该工具的样本）
     applicable = [r for r in results if r["contradiction_followed"] is not None]
@@ -207,6 +221,8 @@ def main() -> None:
         "avg_tool_score": avg_tool_score,
         "contradiction": contradiction,
         "policy_refusal": policy_refusal,
+        "tool_coverage": tool_coverage,
+        "untouched_tools": untouched,
         "by_layer": by_layer,
         "results": results,
     }

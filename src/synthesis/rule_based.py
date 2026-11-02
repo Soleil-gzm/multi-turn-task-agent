@@ -96,7 +96,7 @@ def _finalize(case: dict) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# 核心路径：24 条（4 子类型 × 6）
+# 核心路径：24 条（4 协商子类型 × 5 + 发票核查 × 4）
 # ---------------------------------------------------------------------------
 
 _CORE_GOALS = {
@@ -104,12 +104,20 @@ _CORE_GOALS = {
     "extension": "申请延期付款并确认新日期",
     "waiver": "争取政策内的部分减免",
     "standard_reminder": "确认具体付款日期并立即记录",
+    "invoice_check": "询问发票状态后接受分期方案",
 }
 
 
 def _core_oracle(subtype: str, contract_no: str) -> dict:
     if subtype == "standard_reminder":
         tools = [_tool("query_receivable", 1), _tool("record_promise", 2)]
+    elif subtype == "invoice_check":
+        tools = [
+            _tool("query_receivable", 1),
+            _tool("check_invoice", None),
+            _tool("query_policy", 2),
+            _tool("record_promise", 3),
+        ]
     elif subtype in ("installment", "extension"):
         tools = [
             _tool("query_receivable", 1),
@@ -125,33 +133,40 @@ def _core_oracle(subtype: str, contract_no: str) -> dict:
     return _oracle(tools, contract_no, "CLOSED")
 
 
+def _core_case(idx: int, subtype: str, contract: dict) -> dict:
+    return _finalize(
+        {
+            "case_id": f"REC-CORE-{idx:03d}",
+            "version": "v1",
+            "layer": "core",
+            "subtype": subtype,
+            "difficulty": 1 if idx % 3 else 2,
+            "seed": 1000 + idx,
+            "init_state": dict(contract),
+            "user_persona": {
+                "type": "cooperative",
+                "goal": _CORE_GOALS[subtype],
+                "max_rounds": 8,
+            },
+            "oracle": _core_oracle(subtype, contract["contract_no"]),
+            "tags": [subtype, "cooperative"],
+        }
+    )
+
+
 def _build_core() -> list[dict]:
+    """24 条：4 个协商子类型 × 5 轮 + 发票核查 × 4 轮（保证 check_invoice 被评测触达）。"""
     cases: list[dict] = []
     idx = 0
-    for _round in range(6):
+    for _round in range(5):
         for subtype in CORE_SUBTYPES:
             idx += 1
             contract = CONTRACTS["A" if idx % 2 else "B"]
-            cases.append(
-                _finalize(
-                    {
-                        "case_id": f"REC-CORE-{idx:03d}",
-                        "version": "v1",
-                        "layer": "core",
-                        "subtype": subtype,
-                        "difficulty": 1 if idx % 3 else 2,
-                        "seed": 1000 + idx,
-                        "init_state": dict(contract),
-                        "user_persona": {
-                            "type": "cooperative",
-                            "goal": _CORE_GOALS[subtype],
-                            "max_rounds": 8,
-                        },
-                        "oracle": _core_oracle(subtype, contract["contract_no"]),
-                        "tags": [subtype, "cooperative"],
-                    }
-                )
-            )
+            cases.append(_core_case(idx, subtype, contract))
+    for i in range(4):
+        idx += 1
+        contract = CONTRACTS[("A", "B", "C")[i % 3]]
+        cases.append(_core_case(idx, "invoice_check", contract))
     return cases
 
 

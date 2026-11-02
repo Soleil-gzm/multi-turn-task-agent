@@ -13,6 +13,7 @@ from typing import Any
 
 
 _CONTRACT_RE = re.compile(r"HT-Y2026-\d{3}")
+_INVOICE_RE = re.compile(r"INV-\d+")
 _AMOUNT_RE = re.compile(r"'amount':\s*(\d+)")
 
 
@@ -63,6 +64,12 @@ class MockLLMClient(LLMClient):
             return self._tool_call("query_receivable", {"contract_no": contract_no}, "call_1")
         if "金额不对" in last_user or "对账" in last_user or "不符" in last_user or "差异" in last_user:
             return self._tool_call("diff_statement", {"contract_no": contract_no}, "call_4")
+        if "发票" in last_user:
+            return self._tool_call(
+                "check_invoice",
+                {"invoice_no": self._extract_invoice_no(messages)},
+                "call_5",
+            )
         if (
             "政策" in last_user
             or "分期" in last_user
@@ -93,6 +100,17 @@ class MockLLMClient(LLMClient):
             if found:
                 return found.group(0)
         return "HT-Y2026-012"
+
+    @staticmethod
+    def _extract_invoice_no(messages: list[dict[str, str]]) -> str:
+        """从最近一条含发票号的用户消息提取发票号（真源：用户输入）。"""
+        for m in reversed(messages):
+            if m.get("role") != "user":
+                continue
+            found = _INVOICE_RE.search(m.get("content", ""))
+            if found:
+                return found.group(0)
+        return "INV-20260123"
 
     @staticmethod
     def _extract_amount(messages: list[dict[str, str]]) -> int:
