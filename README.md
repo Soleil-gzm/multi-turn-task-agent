@@ -36,7 +36,13 @@
 
 - Python **3.10+**：代码仅使用 `from __future__ import annotations`、`X | Y` 等 3.10 语法，未使用 3.11+ 专有特性
 - 本地实测版本 **3.13.9**（`python --version`）；不强制某一小版本，以实际解释器为准
-- `pydantic` / `pyyaml` / `pytest` 为运行与测试必需；`fastapi` / `uvicorn` / `httpx` / `jieba` 为服务化与检索阶段预留
+- `pydantic` / `pyyaml` / `pytest` / `jieba` 为运行与测试必需（`jieba` 供检索层分词）；`fastapi` / `uvicorn` / `httpx` 为服务化阶段预留
+- 环境自检（应全部成功）：
+
+```bash
+python -c "import pydantic, yaml, pytest, jieba; print('deps ok')"
+python -m pytest tests/ -q      # 期望 92 passed
+```
 
 ```bash
 conda create -n mta python=3.13 -y     # 3.10+ 均可

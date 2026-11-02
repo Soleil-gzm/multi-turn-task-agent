@@ -9,8 +9,8 @@
 ```
 multi-turn-task-agent/
 ├── README.md
-├── Makefile                    # make demo / make test / make eval
-├── requirements.txt            # 运行与测试依赖
+├── Makefile                    # make demo / dataset / templates / eval / test
+├── requirements.txt            # 运行与测试依赖（含 jieba：检索层必需）
 ├── configs/
 │   ├── scenarios/receivables.yaml
 │   └── prompts/receivables/system.txt
@@ -25,18 +25,19 @@ multi-turn-task-agent/
 │   ├── synthesis/rule_based.py # 规则化生成 80 条评测集
 │   ├── eval/                   # contracts.py（C1）、runner.py（评测运行器）
 │   ├── adapters/               # （规划）公开数据集适配器
-│   ├── retrieval/              # （规划）BM25 检索
+│   ├── retrieval/              # bm25.py：jieba 分词 + BM25 片段检索（语料 data/knowledge/）
 │   ├── services/               # （规划）FastAPI 服务
 │   └── mcp/                    # （规划）MCP 工具暴露
 ├── data/
-│   ├── schemas/receivables/    # （规划）话术模板
-│   └── knowledge/receivables/  # （规划）政策知识库
+│   ├── schemas/receivables/    # 话术模板 YAML 真源（39 条，make templates 生成 xlsx）
+│   └── knowledge/receivables/  # policy 知识库（24 条片段，BM25 语料）
 ├── eval/
 │   ├── datasets/receivables/cases.jsonl   # 80 条评测集（含 oracle 与 content_hash）
 │   ├── graders/                # （规划）LLM Judge / 轨迹审计
 │   ├── metrics/                # （规划）指标采集
-│   └── reports/                # v0_baseline.json + traces/
-└── tests/test_contracts.py     # 契约 / 状态机 / 工具单测
+│   └── reports/                # v0_baseline.json + traces/ + manual_review_20.md
+├── scripts/build_talk_template.py  # 话术 YAML → xlsx
+└── tests/                      # test_contracts.py（契约/状态机/工具）+ test_data_layer.py（话术/知识库/检索）
 ```
 
 > 标注「（规划）」的目录当前只有包骨架或为空，无实现。
@@ -249,7 +250,7 @@ eval:
 | `query_receivable` | 查合同/发票/账期/逾期天数 | 参数与返回可对照 oracle |
 | `check_invoice` | 查发票状态（已开/已抵扣/红冲） | 与客户主张交叉校验 |
 | `diff_statement` | 对账差异比对 | **可返回矛盾数据**，制造真实难度 |
-| `query_policy` | 查政策边界（分期/延期/减免） | 决策依据，可校验引用 |
+| `query_policy` | 查政策边界（分期/延期/减免），可按自然语言检索知识库条款 | 决策依据，可校验引用与召回 |
 | `record_promise` | 写入承诺（日期+金额） | 成功判据的落点 |
 | `escalate` | 升级人工并附原因 | 异常分支的正确性 |
 
@@ -264,7 +265,7 @@ eval:
 | `query_receivable` | `contract_no`：`^HT-Y2026-\d{3}$` | `contract_no`、`invoice_no`、`amount`、`due_date`、`overdue_days`、`status` | `NOT_FOUND`、`INVALID_ARG` |
 | `check_invoice` | `invoice_no`：`^INV-\d{8}$` | `invoice_no`、`contract_no`、`status`（已开 / 已抵扣 / 红冲）、`amount`、`issued_date` | `NOT_FOUND`、`INVALID_ARG` |
 | `diff_statement` | `contract_no` | `book_amount`、`customer_claimed_amount`、`diff`、`has_diff`、`customer_note` | `NOT_FOUND`、`INVALID_ARG` |
-| `query_policy` | 无 | `max_installments`、`max_extension_days`、`max_waiver_ratio`、`forbidden_patterns` | — |
+| `query_policy` | `query`（可选，自然语言；缺省时只返回政策数值） | `max_installments`、`max_extension_days`、`max_waiver_ratio`、`forbidden_patterns`；带 `query` 时额外返回 `fragments`（知识库 BM25 命中片段，含 `id`/`topic`/`title`/`text`，不含检索分数） | — |
 | `record_promise` | `contract_no`、`pay_date`（YYYY-MM-DD）、`amount`（整数） | 承诺记录（含 `recorded_at`） | `INVALID_ARG` |
 | `escalate` | `contract_no`、`reason` | `ticket_id`（`ESC-0001` 起）、`status`（`created`） | `INVALID_ARG` |
 
@@ -291,6 +292,13 @@ print(registry.invoke("check_invoice", invoice_no="INV-99999999"))
 # {"ok": False, "data": None,
 #  "error": {"code": "NOT_FOUND", "msg": "发票 INV-99999999 不存在", "retryable": False},
 #  "meta": {...}}
+
+# 知识库检索（可选 query）：返回政策数值 + 命中片段
+print(registry.invoke("query_policy", query="延期最多多少天"))
+# {"ok": True,
+#  "data": {"max_installments": 3, ..., "fragments": [{"id": "POL-INT-002", "topic": "internal_policy", "title": "...", "text": "..."}]},
+#  "error": None,
+#  "meta": {"source": "policy_kb", "latency_ms": 429}}
 ```
 
 工具 schema 可直接转成 function calling 描述：`registry.function_calling_schemas()`，同时用于参数正确率评测与文档生成。
