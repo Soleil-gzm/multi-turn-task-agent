@@ -89,6 +89,39 @@ multi-turn-task-agent/
 | CONFIRM | NEGOTIATE/propose | 客户撤回 |
 | 任意 | ESCALATED | 命中红线或客户明确拒绝 |
 
+```mermaid
+stateDiagram-v2
+    [*] --> INIT
+
+    INIT --> IDENTIFY : session_start
+    IDENTIFY --> NEGOTIATE : identity_verified
+    IDENTIFY --> ESCALATED : verify_failures ≥ 2
+
+    state NEGOTIATE {
+        [*] --> probe
+        probe --> propose : amount_informed
+        propose --> counter : counter_offer
+        counter --> propose : counter_exceeds_policy
+        counter --> final : counter_within_policy
+
+        final --> CONFIRM : offer_accepted
+        CONFIRM --> propose : customer_withdraw
+    }
+
+    NEGOTIATE --> ESCALATED : round > 5\n或 policy_violation_attempt ≥ 2
+
+    CONFIRM --> CLOSED : promise_recorded
+
+    CLOSED --> [*]
+    ESCALATED --> [*]
+
+    note right of ESCALATED
+        escalate_to: ESCALATED
+        escalate_tool: escalate()
+        通配触发: redline_hit / customer_refuse
+    end note
+```
+
 设计动机：协商过程天然存在反复（客户撤回、反方案被政策打回），元组状态 + 显式转移表让这些回退路径与正常路径同级建模，转移条件可枚举、可测试、可被评测器比对。
 
 > 6 个 stage 与 [场景设计 · 8 个业务模块](scenario-design.md#8-模块--6-stage-映射)是层次关系而非两套口径：模块是功能语义单元，stage 是状态机阶段。`NEGOTIATE` 的 4 个子状态（probe/propose/counter/final）承载账款告知、条件协商、异议澄清三个模块，对账差异跨子状态标 `NEGOTIATE/*`；`INIT` 不对应业务模块。
