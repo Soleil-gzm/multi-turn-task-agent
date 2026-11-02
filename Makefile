@@ -1,4 +1,4 @@
-.PHONY: demo dataset eval test install clean
+.PHONY: demo dataset eval test templates install clean
 
 PYTHON ?= python
 
@@ -7,6 +7,9 @@ demo:
 
 dataset:
 	$(PYTHON) -m src.synthesis.rule_based
+
+templates:
+	$(PYTHON) scripts/build_talk_template.py
 
 eval:
 	$(PYTHON) -m src.eval.runner

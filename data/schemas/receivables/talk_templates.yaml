@@ -1,0 +1,163 @@
+# receivables 场景话术模板（唯一真源，xlsx 由 scripts/build_talk_template.py 生成）
+#
+# 列定义（与 milktea 验证过的 schema 一致）：
+#   id        唯一编号 T-{模块}-{序号}
+#   module    业务模块：opening/identify/inform/clarify/negotiate/confirm/escalate/close/insert
+#   speaker   agent | customer
+#   persona   仅 customer 行使用：cooperative/delay/tough/misleading/policy_probe
+#   content   话术文本，{占位符} 三方一致校验见 tests/test_data_layer.py
+#   option    同组随机取一的组 ID（无则 null）
+#   requires  前置条件（沿用状态机受限表达式口径）
+#   next      建议后继模块（继承链）
+#   weight    采样权重
+#   max_repeat 单次会话内重复上限
+#   set       A/B 实验集合标记
+#
+# 占位符白名单（三方一致：模板 ↔ case init_state ↔ 工具返回/policy）：
+#   contract_no invoice_no due_date amount overdue_days status   （账款实体）
+#   pay_date                                                    （承诺）
+#   max_installments max_extension_days max_waiver_percent      （policy 派生）
+
+templates:
+  # ---- 开场 ----
+  - {id: T-OPN-01, module: opening, speaker: agent, persona: null, option: greet_a,
+     content: "您好，我是应收账款专员小账，就贵司一笔逾期未结款项与您沟通，现在方便核对吗？",
+     requires: null, next: identify, weight: 1.0, max_repeat: 1, set: A}
+  - {id: T-OPN-02, module: opening, speaker: agent, persona: null, option: greet_a,
+     content: "您好，我是财务部的账款协商专员，关于贵司的到期账款需要和您确认一下付款安排。",
+     requires: null, next: identify, weight: 1.0, max_repeat: 1, set: B}
+
+  # ---- 身份核验 ----
+  - {id: T-IDN-01, module: identify, speaker: agent, persona: null, option: id_ask_a,
+     content: "为核实身份，请提供合同编号（格式 HT-Y2026-XXX）或对应发票号。",
+     requires: null, next: inform, weight: 1.0, max_repeat: 2, set: A}
+  - {id: T-IDN-02, module: identify, speaker: agent, persona: null, option: id_ask_a,
+     content: "麻烦提供一下合同号，我来为您查询账款明细。",
+     requires: null, next: inform, weight: 1.0, max_repeat: 2, set: B}
+  - {id: T-IDN-03, module: identify, speaker: agent, persona: null, option: null,
+     content: "已核对：合同 {contract_no} 与您方信息一致。",
+     requires: "identity_verified", next: inform, weight: 1.0, max_repeat: 1, set: A}
+  - {id: T-IDN-04, module: identify, speaker: agent, persona: null, option: null,
+     content: "暂未查到该合同号，请核对编号是否完整，或提供发票号我再查一次。",
+     requires: "not identity_verified", next: identify, weight: 1.0, max_repeat: 2, set: A}
+
+  # ---- 账款告知 ----
+  - {id: T-INF-01, module: inform, speaker: agent, persona: null, option: inform_a,
+     content: "合同 {contract_no} 项下发票 {invoice_no} 已于 {due_date} 到期，目前逾期 {overdue_days} 天，应还金额 {amount} 元。",
+     requires: "identity_verified", next: clarify, weight: 1.0, max_repeat: 1, set: A}
+  - {id: T-INF-02, module: inform, speaker: agent, persona: null, option: inform_a,
+     content: "核对结果：{contract_no} 项下尚有 {amount} 元未结清，账期 {due_date} 到期，已逾期 {overdue_days} 天。",
+     requires: "identity_verified", next: clarify, weight: 1.0, max_repeat: 1, set: B}
+  - {id: T-INF-03, module: inform, speaker: agent, persona: null, option: null,
+     content: "想确认一下贵司目前的付款安排，预计什么时候可以支付？",
+     requires: "amount_informed", next: negotiate, weight: 1.0, max_repeat: 2, set: A}
+
+  # ---- 异议澄清 / 对账 ----
+  - {id: T-CLR-01, module: clarify, speaker: agent, persona: null, option: null,
+     content: "系统账面为 {amount} 元。如您方账面不一致，我们可以做对账核对，以核对结果为准。",
+     requires: null, next: negotiate, weight: 1.0, max_repeat: 2, set: A}
+  - {id: T-CLR-02, module: clarify, speaker: agent, persona: null, option: null,
+     content: "发票 {invoice_no} 的状态我可以为您同步查验，查验结果我们以系统记录为准。",
+     requires: null, next: negotiate, weight: 1.0, max_repeat: 1, set: A}
+  - {id: T-CLR-03, module: clarify, speaker: agent, persona: null, option: null,
+     content: "您主张的已付款项我需要与到账记录核对，核对期间本次账款金额仍以系统账面为准。",
+     requires: null, next: negotiate, weight: 1.0, max_repeat: 1, set: A}
+
+  # ---- 方案协商 ----
+  - {id: T-NEG-01, module: negotiate, speaker: agent, persona: null, option: propose_installment_a,
+     content: "根据政策，{amount} 元最多可分 {max_installments} 期支付，建议首期本周内安排，您看可以吗？",
+     requires: "amount_informed", next: confirm, weight: 1.0, max_repeat: 1, set: A}
+  - {id: T-NEG-02, module: negotiate, speaker: agent, persona: null, option: propose_installment_a,
+     content: "如果一次性支付有压力，可以分最多 {max_installments} 期结清 {amount} 元，您倾向几期？",
+     requires: "amount_informed", next: confirm, weight: 1.0, max_repeat: 1, set: B}
+  - {id: T-NEG-03, module: negotiate, speaker: agent, persona: null, option: null,
+     content: "一次性支付确有困难的话，最多可申请延期 {max_extension_days} 天，需要您给出明确付款日期。",
+     requires: "amount_informed", next: confirm, weight: 1.0, max_repeat: 1, set: A}
+  - {id: T-NEG-04, module: negotiate, speaker: agent, persona: null, option: null,
+     content: "政策范围内我们最多可申请 {max_waiver_percent}% 的减免，其余部分仍需按期结清。",
+     requires: "amount_informed", next: confirm, weight: 1.0, max_repeat: 1, set: A}
+  - {id: T-NEG-05, module: negotiate, speaker: agent, persona: null, option: null,
+     content: "您提出的方案在政策范围内，我们可以按此推进，接下来确认具体日期和金额。",
+     requires: "counter_within_policy", next: confirm, weight: 1.0, max_repeat: 1, set: A}
+  - {id: T-NEG-06, module: negotiate, speaker: agent, persona: null, option: null,
+     content: "这个幅度超出我的审批权限，我按政策上限为您申请，或换一种方案，您看哪种更合适？",
+     requires: "counter_offer", next: negotiate, weight: 1.0, max_repeat: 2, set: A}
+
+  # ---- 承诺确认 ----
+  - {id: T-CFM-01, module: confirm, speaker: agent, persona: null, option: confirm_a,
+     content: "确认一下：贵司承诺于 {pay_date} 前支付 {amount} 元，对吗？",
+     requires: "offer_accepted", next: close, weight: 1.0, max_repeat: 2, set: A}
+  - {id: T-CFM-02, module: confirm, speaker: agent, persona: null, option: confirm_a,
+     content: "好的，那我们将按 {pay_date} 前支付 {amount} 元来登记，请您确认。",
+     requires: "offer_accepted", next: close, weight: 1.0, max_repeat: 2, set: B}
+  - {id: T-CFM-03, module: confirm, speaker: agent, persona: null, option: null,
+     content: "已为您记录付款承诺：{pay_date} 前支付 {amount} 元，届时我们会跟进到账情况。",
+     requires: "promise_recorded", next: close, weight: 1.0, max_repeat: 1, set: A}
+
+  # ---- 升级与结束 ----
+  - {id: T-ESC-01, module: escalate, speaker: agent, persona: null, option: null,
+     content: "这个问题需要转交人工专员处理，已为您登记工单，会在 1 个工作日内与您联系。",
+     requires: null, next: close, weight: 1.0, max_repeat: 1, set: A}
+  - {id: T-CLS-01, module: close, speaker: agent, persona: null, option: close_a,
+     content: "感谢您的配合，后续如有单据或对账问题可随时联系。",
+     requires: null, next: null, weight: 1.0, max_repeat: 1, set: A}
+  - {id: T-CLS-02, module: close, speaker: agent, persona: null, option: close_a,
+     content: "好的，那今天就先到这里，祝您工作顺利。",
+     requires: null, next: null, weight: 1.0, max_repeat: 1, set: B}
+
+  # ---- 插入语（合规施压 / 政策提示）----
+  - {id: T-INS-01, module: insert, speaker: agent, persona: null, option: press_a,
+     content: "提醒您，逾期天数继续增加会产生相应违约成本，建议尽早安排付款。",
+     requires: "amount_informed", next: null, weight: 0.5, max_repeat: 1, set: A}
+  - {id: T-INS-02, module: insert, speaker: agent, persona: null, option: press_a,
+     content: "账龄拉长会影响后续合作额度评估，建议您本周内给出明确安排。",
+     requires: "amount_informed", next: null, weight: 0.5, max_repeat: 1, set: B}
+  - {id: T-INS-03, module: insert, speaker: agent, persona: null, option: null,
+     content: "本次协商以政策上限为准：分期不超过 {max_installments} 期、延期不超过 {max_extension_days} 天、减免不超过 {max_waiver_percent}%。",
+     requires: null, next: null, weight: 1.0, max_repeat: 1, set: A}
+
+  # ---- 客户侧：cooperative ----
+  - {id: T-CUS-CO-01, module: identify, speaker: customer, persona: cooperative, option: null,
+     content: "好的，合同号是 {contract_no}。",
+     requires: null, next: null, weight: 1.0, max_repeat: 1, set: A}
+  - {id: T-CUS-CO-02, module: negotiate, speaker: customer, persona: cooperative, option: null,
+     content: "一次性付清有困难，可以分 {max_installments} 期吗？",
+     requires: null, next: null, weight: 1.0, max_repeat: 1, set: A}
+  - {id: T-CUS-CO-03, module: confirm, speaker: customer, persona: cooperative, option: null,
+     content: "可以，我们确认按这个日期和金额付款。",
+     requires: null, next: null, weight: 1.0, max_repeat: 1, set: A}
+
+  # ---- 客户侧：delay ----
+  - {id: T-CUS-DL-01, module: negotiate, speaker: customer, persona: delay, option: delay_a,
+     content: "最近资金紧张，再宽限一段时间吧。",
+     requires: null, next: null, weight: 1.0, max_repeat: 2, set: A}
+  - {id: T-CUS-DL-02, module: negotiate, speaker: customer, persona: delay, option: delay_a,
+     content: "具体日期我现在定不了，月底再说吧。",
+     requires: null, next: null, weight: 1.0, max_repeat: 2, set: B}
+  - {id: T-CUS-DL-03, module: inform, speaker: customer, persona: delay, option: null,
+     content: "流程还在走，我也没办法。",
+     requires: null, next: null, weight: 1.0, max_repeat: 2, set: A}
+
+  # ---- 客户侧：tough ----
+  - {id: T-CUS-TG-01, module: negotiate, speaker: customer, persona: tough, option: tough_a,
+     content: "你们再不解决我就投诉曝光。",
+     requires: null, next: null, weight: 1.0, max_repeat: 2, set: A}
+  - {id: T-CUS-TG-02, module: negotiate, speaker: customer, persona: tough, option: tough_a,
+     content: "我要求全部减免，否则一分钱不付。",
+     requires: null, next: null, weight: 1.0, max_repeat: 2, set: B}
+
+  # ---- 客户侧：misleading ----
+  - {id: T-CUS-MS-01, module: clarify, speaker: customer, persona: misleading, option: mislead_a,
+     content: "这笔钱我们已经付过了，是你们系统有问题。",
+     requires: null, next: null, weight: 1.0, max_repeat: 2, set: A}
+  - {id: T-CUS-MS-02, module: clarify, speaker: customer, persona: misleading, option: mislead_a,
+     content: "金额不对，我们只认账面的一半。",
+     requires: null, next: null, weight: 1.0, max_repeat: 2, set: B}
+
+  # ---- 客户侧：policy_probe ----
+  - {id: T-CUS-PP-01, module: negotiate, speaker: customer, persona: policy_probe, option: probe_a,
+     content: "减免 50% 行不行？",
+     requires: null, next: null, weight: 1.0, max_repeat: 2, set: A}
+  - {id: T-CUS-PP-02, module: negotiate, speaker: customer, persona: policy_probe, option: probe_a,
+     content: "你们最多能减免多少？权限上限是多少？",
+     requires: null, next: null, weight: 1.0, max_repeat: 2, set: B}

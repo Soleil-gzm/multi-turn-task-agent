@@ -24,10 +24,10 @@
 - **矛盾数据告知**：`response.contradiction` 声明工具 / 字段 / 话术，循环内检测到两字段不一致即主动告知；评测新增「矛盾数据告知率」（当前 100%，6/6）
 - **超政策拒绝话术**：`response.policy_refusal` 声明抽取正则 / 对应 policy 字段 / 拒绝模板，超限时显式拒绝并给政策内替代；评测新增「超政策拒绝话术率」（当前 100%，10/10），重复超限计入 `policy_violation_attempt` 触发升级
 - **评测链路**：80 条 case 可加载、可评测、可出分层报告
+- **W2 数据层**：话术表（39 条，YAML 唯一真源 + `make templates` 生成 xlsx，占位符三方一致校验入测试）+ policy 知识库（24 条片段：公开法规要点 + 虚构内部政策，BM25 检索已接入 `query_policy`）；92 个单测全绿
 
 ### 进行中
 
-- W2 数据层：receivables 话术表、policy 知识库（评测集已由规则化生成器补齐 80 条）
 - W0 前置：prior-art 对照清单（三集职责边界、动作粒度、policy 字段、轨迹比对、pass^k）
 - milktea 第二场景：通用性验证 4 条硬标准
 - 真实模型接入：当前 LLM 为 `MockLLMClient`，评测数字只验证链路，不代表模型能力
@@ -38,7 +38,7 @@
 | 契约 | 内容 | 状态 | 验证方式 | 当前实现边界 |
 | --- | --- | --- | --- | --- |
 | C1 数据 | case / oracle schema + 三个判定边界 | 部分实现 | pydantic 可加载 + 单测 | schema、三个判定边界、80 条 case 与真实 `content_hash` 已落地并有单测；未做人工抽检与公开集校准 |
-| C2 工具 | 统一返回 `{ok,data,error,meta}` + 入参 JSON Schema | 部分实现 | 80 条 case 能跑通 6 个工具 | 返回封装、注册表、6 个工具与 schema 一致性单测已落地；工具均为 mock 数据 |
+| C2 工具 | 统一返回 `{ok,data,error,meta}` + 入参 JSON Schema | 部分实现 | 80 条 case 能跑通 6 个工具 | 返回封装、注册表、6 个工具与 schema 一致性单测已落地；`query_policy` 已接知识库 BM25 检索，其余工具为 mock 数据 |
 | C3 配置 | scenario.yaml schema + 启动预检 | 部分实现 | 坏配置能 fail-fast | 必填字段 / `impl` 可导入 / 转移合法性 / policy 数值四项预检已落地并有单测；「无孤立状态」为简化判定 |
 | C4 降级 | 7 类故障恢复路径（MVP 3 类） | 仅定义 | 3 类各有 1 用例 + trace 有 `degradation` | trace 有 `degraded` 标记，矛盾告知与超政策拒绝话术已实现（配置驱动）；重试 / 降级逻辑未实现 |
 | C5 API | `POST /chat`、`GET /sessions/{id}`、`GET /trace/{trace_id}`、`POST /eval`、`GET /eval/{task_id}` + 幂等与错误码 | 仅定义 | 一条命令起服务并完成一次对话 | `src/services/` 仅有包骨架，无路由 |
@@ -54,7 +54,7 @@
 | Walking Skeleton | 2 状态（`IDENTIFY → NEGOTIATE`）+ 3 工具（查账款 / 查政策 / 记承诺）+ 10 条 case，端到端一条命令跑通 | `make demo` 走完一次多轮并落 trace；先跑通再扩充，不追求契约全覆盖 | 已完成（`make demo` 已验证，当前已扩到 12 转移 / 6 工具） |
 | 框架主干 | 配置驱动 + 元组状态机 + 工具注册表 + trace + 启动预检 | 两场景零代码改动可跑（C3/C6 生效） | 部分完成（组件均落地；两场景零改动验证待 milktea） |
 | 第二场景 yaml | milktea：仅 yaml + 数据即可跑通 | 通用性验证 4 条硬标准 | 未开始 |
-| 场景数据层 | receivables 话术表 + 50–80 条案例（规则化生成，含 oracle）+ policy 知识库 | 占位符三方一致校验通过 | 部分完成（80 条 case 含 oracle 与 content_hash；话术表与知识库未做） |
+| 场景数据层 | receivables 话术表 + 50–80 条案例（规则化生成，含 oracle）+ policy 知识库 | 占位符三方一致校验通过 | 已完成（80 条 case 含 oracle 与 content_hash；39 条话术表 + 24 条知识库片段，占位符三方一致校验入测试） |
 | 状态机与工具层 | 12 条转移 + 6 个业务工具（mock 单据） | 每条转移 1 个单测 | 已完成（12 条转移逐条单测，6 工具已实现） |
 | 服务化 | FastAPI `/chat` + SQLite + `docker compose up` | 换机器一条命令起来 | 未开始 |
 | 评测落地 | 规则评测器 + 50–80 条评测集 + v0 基线报告 + 人工抽检 20 条 + 对抗 40 条（含 ≥2 条间接注入） | `make eval` 一条命令出报告 | 部分完成（评测器与报告链路已通；评测集 80 条含对抗 40 条与 2 条间接注入；当前 v0 为 Mock：终态匹配 100.0%、完成率 35.0%、工具均分 0.80、矛盾告知率 100%（6/6）、超政策拒绝话术率 100%（10/10）；人工抽检 20 条 20/20 通过） |

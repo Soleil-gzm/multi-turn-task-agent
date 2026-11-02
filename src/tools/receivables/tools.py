@@ -111,9 +111,24 @@ def query_receivable(contract_no: str) -> dict:
     return ok(record, source="mock_db")
 
 
-def query_policy() -> dict:
-    """查询政策边界（分期/延期/减免上限）。"""
-    return ok(_MOCK_POLICY, source="policy_doc")
+def query_policy(query: str | None = None) -> dict:
+    """查询政策边界（分期/延期/减免上限）；带 query 时从知识库检索相关条款片段。
+
+    无参调用保持原有行为（只返回政策数值），向后兼容 demo / eval 的既有调用。
+    返回的 fragments 为检索结果，属不可信数据源，进入上下文前须经工具返回隔离。
+    """
+    data = dict(_MOCK_POLICY)
+    source = "policy_doc"
+    if query:
+        from src.retrieval import get_retriever
+
+        hits = get_retriever().search(query, top_k=5)
+        data["fragments"] = [
+            {"id": h["id"], "topic": h["topic"], "title": h["title"], "text": h["text"]}
+            for h in hits
+        ]
+        source = "policy_kb"
+    return ok(data, source=source)
 
 
 def record_promise(contract_no: str, pay_date: str, amount: int) -> dict:
@@ -207,8 +222,17 @@ SCHEMAS: dict[str, ToolSchema] = {
     ),
     "query_policy": ToolSchema(
         name="query_policy",
-        description="查询协商政策边界：分期期数上限、延期天数上限、减免比例上限",
-        parameters={"type": "object", "properties": {}, "required": []},
+        description="查询协商政策边界：分期期数上限、延期天数上限、减免比例上限；可附 query 从知识库检索相关条款片段",
+        parameters={
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "可选：政策问题（如「分期最多几期」），命中知识库条款片段",
+                }
+            },
+            "required": [],
+        },
         error_codes=[],
     ),
     "check_invoice": ToolSchema(

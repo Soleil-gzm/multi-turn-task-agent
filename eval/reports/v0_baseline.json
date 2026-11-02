@@ -3,7 +3,7 @@
   "total_cases": 80,
   "stage_match_rate": 1.0,
   "task_completion_rate": 0.35,
-  "avg_tool_score": 0.8,
+  "avg_tool_score": 0.7999999999999987,
   "contradiction": {
     "applicable": 6,
     "followed": 6,
@@ -18,17 +18,17 @@
     "core": {
       "count": 24,
       "stage_match_rate": 1.0,
-      "avg_tool_score": 0.8000000000000002
+      "avg_tool_score": 0.8000000000000003
     },
     "boundary": {
       "count": 16,
       "stage_match_rate": 1.0,
-      "avg_tool_score": 0.8
+      "avg_tool_score": 0.8000000000000002
     },
     "adversarial": {
       "count": 40,
       "stage_match_rate": 1.0,
-      "avg_tool_score": 0.8
+      "avg_tool_score": 0.8000000000000004
     }
   },
   "results": [

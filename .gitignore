@@ -7,5 +7,6 @@ __pycache__/
 .pytest_cache/
 eval/reports/traces/
 data/**/generated/
+data/schemas/receivables/话术模板.xlsx
 docs/数据集选型（补充）.md
 docs/工程契约与细节设计清单.md

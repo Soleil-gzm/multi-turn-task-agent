@@ -29,8 +29,8 @@
 完整架构（目录结构、元组状态机、场景配置注入点、工具层）见 [架构设计](docs/architecture.md)。
 
 ## 快速开始
- 
-> **当前状态**：设计阶段完成，**W1 已完成、进入 W2 数据层**——Walking Skeleton 已跑通（`make demo` 走完一次多轮并落 trace），并完成 12 条转移的配置与逐条单测、6 个 mock 业务工具、80 条评测 case、73 个单测与 v0 基线报告（Mock）；W2 的话术表与 policy 知识库尚未开始。LLM 当前为 `MockLLMClient`（按脚本响应，不接真实模型），API 服务与真实模型尚未接入。各契约实现状态见 [Roadmap · 契约状态](docs/roadmap.md#契约状态诚实反映代码进度每个里程碑更新)。
+
+> **当前状态**：W1 框架主干与 W2 数据层已完成——Walking Skeleton 跑通，12 条转移配置与逐条单测、6 个 mock 业务工具、80 条评测 case、话术表（39 条）与 policy 知识库（24 条片段，BM25 检索已接入 `query_policy`）、92 个单测与 v0 基线报告（Mock）。待做：milktea 第二场景、真实模型接入（当前为 `MockLLMClient`）、FastAPI 服务化、prior-art 对照。各契约实现状态见 [Roadmap · 契约状态](docs/roadmap.md#契约状态诚实反映代码进度每个里程碑更新)。
 
 ### 环境准备
 
@@ -51,9 +51,10 @@ Windows PowerShell 通常没有 `make`，直接执行右列等价命令即可；
 | 目的 | 有 `make` | 无 `make`（Windows PowerShell） |
 | --- | --- | --- |
 | 多轮对话演示，trace 落盘 `eval/reports/traces/` | `make demo` | `python -m src.agent.demo` |
-| 契约与工具单元测试（73 passed） | `make test` | `python -m pytest tests/ -v` |
+| 契约与工具单元测试（92 passed） | `make test` | `python -m pytest tests/ -v` |
 | 跑 80 条评测 case，生成分层 v0 报告 | `make eval` | `python -m src.eval.runner` |
 | 重新生成 80 条评测集（确定性，可复现） | `make dataset` | `python -m src.synthesis.rule_based` |
+| 由话术 YAML 真源生成 xlsx 模板 | `make templates` | `python scripts/build_talk_template.py` |
 | 安装依赖 | `make install` | `python -m pip install -r requirements.txt` |
 | 清理 `__pycache__` | `make clean` | `python -c "import shutil,pathlib;[shutil.rmtree(p) for p in pathlib.Path('.').rglob('__pycache__')]"` |
 
@@ -116,7 +117,7 @@ print(result.trace.totals)
 ## 文档导航
 
 | 文档 | 内容 |
-|---|---|
+| --- | --- |
 | [架构设计](docs/architecture.md) | 目录结构、五层结构、状态机、场景配置、工具层、契约层 |
 | [场景设计](docs/scenario-design.md) | 场景选型、模块语义、政策边界、公开数据集接入、虚拟数据规范、合成管线 |
 | [评测设计](docs/eval-design.md) | 评测对象、三级评测方法、指标清单、可复现性条款 |

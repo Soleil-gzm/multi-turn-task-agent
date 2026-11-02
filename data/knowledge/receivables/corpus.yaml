@@ -1,0 +1,137 @@
+# receivables 政策知识库（演示用虚构整理版）
+#
+# 每条片段字段：id / topic / source / title / text
+#   - source 为公开法规的要点整理（非原文引用），或标注「虚构演示」的内部政策
+#   - topic 取值：internal_policy / payment_terms / collection_conduct / contract_law / reconciliation
+# 检索实现：src/retrieval/bm25.py；消费方：query_policy 工具（可选 query 参数）
+
+fragments:
+  # ---- 内部协商政策（虚构演示数据）----
+  - id: POL-INT-001
+    topic: internal_policy
+    source: 内部协商政策（虚构演示）
+    title: 分期期数上限
+    text: 应收账款协商中，分期付款最多支持 3 期。超出 3 期的分期申请须升级人工审批，坐席无权直接承诺。
+  - id: POL-INT-002
+    topic: internal_policy
+    source: 内部协商政策（虚构演示）
+    title: 延期天数上限
+    text: 延期付款最多可申请 30 天。延期须以明确付款日期为前提，模糊承诺（如"尽快""月底再说"）不构成有效延期协议。
+  - id: POL-INT-003
+    topic: internal_policy
+    source: 内部协商政策（虚构演示）
+    title: 减免比例上限
+    text: 减免比例上限为欠款金额的 10%。任何超出 10% 的减免请求必须显式拒绝，并可引导至分期或延期等合规替代方案。
+  - id: POL-INT-004
+    topic: internal_policy
+    source: 内部协商政策（虚构演示）
+    title: 审批权限边界
+    text: 坐席权限上限为分期 3 期、延期 30 天、减免 10%。超出任一上限的请求不得口头承诺，应登记工单升级人工处理。
+  - id: POL-INT-005
+    topic: internal_policy
+    source: 内部协商政策（虚构演示）
+    title: 付款承诺记录要素
+    text: 有效付款承诺必须包含明确付款日期与金额，并写入承诺记录。仅口头表述"会付"不构成可跟进承诺。
+  - id: POL-INT-006
+    topic: internal_policy
+    source: 内部协商政策（虚构演示）
+    title: 升级触发条件
+    text: 出现以下情形之一应升级人工：客户连续 5 轮以上拒不给出付款安排、身份核验累计 2 次失败、重复提出超政策请求、触碰合规红线。
+
+  # ---- 账期与支付义务（公开法规要点整理）----
+  - id: POL-PAY-001
+    topic: payment_terms
+    source: 保障中小企业款项支付条例（公开法规，要点整理）
+    title: 付款期限约定
+    text: 机关、事业单位和大型企业从中小企业采购货物、工程、服务，应当自交付之日起约定付款期限，不得约定以收到第三方付款作为支付条件（背靠背条款受限）。
+  - id: POL-PAY-002
+    topic: payment_terms
+    source: 保障中小企业款项支付条例（公开法规，要点整理）
+    title: 逾期利息
+    text: 迟延支付中小企业款项的，应当支付逾期利息；双方对逾期利息有约定的按约定，约定利率不得低于合同订立时 1 年期贷款市场报价利率。
+  - id: POL-PAY-003
+    topic: payment_terms
+    source: 保障中小企业款项支付条例（公开法规，要点整理）
+    title: 禁止变相拖欠
+    text: 不得以法定代表人变更、内部付款流程未完成、等待验收审计结果未出等理由变相延长付款期限，拒绝或迟延支付。
+  - id: POL-PAY-004
+    topic: payment_terms
+    source: 保障中小企业款项支付条例（公开法规，要点整理）
+    title: 对账与确认义务
+    text: 采购方应及时验收并与中小企业完成对账确认；以审计结果作为结算依据的，应在合同中明确约定。
+  - id: POL-PAY-005
+    topic: payment_terms
+    source: 保障中小企业款项支付条例（公开法规，要点整理）
+    title: 投诉与公示
+    text: 中小企业可向有关部门投诉拖欠款项行为；大型企业应将逾期尚未支付中小企业款项的合同数量、金额等信息纳入企业年度报告并公示。
+
+  # ---- 催收行为规范（公开自律指引要点整理）----
+  - id: POL-COL-001
+    topic: collection_conduct
+    source: 互联网金融贷后催收风控指引（公开自律指引，要点整理）
+    title: 禁止威胁恐吓
+    text: 催收过程不得使用威胁、恐吓、侮辱性语言，不得虚构法律后果（如"保证起诉""立即冻结账户"）向债务人施压。
+  - id: POL-COL-002
+    topic: collection_conduct
+    source: 互联网金融贷后催收风控指引（公开自律指引，要点整理）
+    title: 催收时间与频次
+    text: 催收应在合理时段进行，不得高频骚扰；对同一债务人的催收频次应有节制，避免影响其正常工作与生活。
+  - id: POL-COL-003
+    topic: collection_conduct
+    source: 互联网金融贷后催收风控指引（公开自律指引，要点整理）
+    title: 第三人保护
+    text: 不得向债务人以外的第三人（亲属、同事、无关联系人）泄露债务信息，不得以骚扰第三人方式施压。
+  - id: POL-COL-004
+    topic: collection_conduct
+    source: 互联网金融贷后催收风控指引（公开自律指引，要点整理）
+    title: 信息真实性
+    text: 催收中披露的欠款金额、逾期天数、合同与发票信息必须真实准确，不得夸大金额或编造不存在的费用项目。
+  - id: POL-COL-005
+    topic: collection_conduct
+    source: 互联网金融贷后催收风控指引（公开自律指引，要点整理）
+    title: 身份表明义务
+    text: 催收人员应主动表明身份与所代表的机构，不得冒充司法机关、律师或其他机构工作人员。
+  - id: POL-COL-006
+    topic: collection_conduct
+    source: 互联网金融贷后催收风控指引（公开自律指引，要点整理）
+    title: 协商与记录
+    text: 鼓励与债务人协商还款安排；协商达成的承诺、异议与投诉应如实记录并留痕，便于后续核查与跟进。
+
+  # ---- 合同与违约（民法典合同编要点整理）----
+  - id: POL-LAW-001
+    topic: contract_law
+    source: 中华人民共和国民法典 合同编（要点整理）
+    title: 按约履行
+    text: 依法成立的合同对当事人具有法律约束力，当事人应当按照约定全面履行自己的义务，包括按约定金额与期限支付价款。
+  - id: POL-LAW-002
+    topic: contract_law
+    source: 中华人民共和国民法典 合同编（要点整理）
+    title: 违约责任
+    text: 一方不履行合同义务或履行不符合约定的，应承担继续履行、采取补救措施或赔偿损失等违约责任。
+  - id: POL-LAW-003
+    topic: contract_law
+    source: 中华人民共和国民法典 合同编（要点整理）
+    title: 协议变更
+    text: 当事人协商一致可以变更合同，包括付款期限与方式的调整；变更内容应明确、可追溯，建议以书面或系统记录形式留痕。
+  - id: POL-LAW-004
+    topic: contract_law
+    source: 中华人民共和国民法典 合同编（要点整理）
+    title: 诉讼时效提示
+    text: 普通债权请求权的诉讼时效期间为三年。账龄管理应关注时效风险，避免因长期未主张权利导致权利受损。
+
+  # ---- 对账与发票常识 ----
+  - id: POL-REC-001
+    topic: reconciliation
+    source: 应收账款管理公开指南（要点整理）
+    title: 账实不符处理原则
+    text: 出现账面金额与客户主张不一致时，应以系统账面与凭证为准发起对账，核对未到账项与未入账凭证，不得以客户口径直接冲减应收。
+  - id: POL-REC-002
+    topic: reconciliation
+    source: 应收账款管理公开指南（要点整理）
+    title: 发票状态交叉校验
+    text: 对账时应交叉核验发票状态（已开 / 已抵扣 / 红冲）。红冲发票对应的原账款需复核，避免按失效发票金额催收。
+  - id: POL-REC-003
+    topic: reconciliation
+    source: 应收账款管理公开指南（要点整理）
+    title: 对账留痕
+    text: 对账差异、客户主张、核对结论均应留痕记录，作为后续协商、升级与争议处理的依据。
