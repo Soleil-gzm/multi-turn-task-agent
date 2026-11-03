@@ -111,3 +111,11 @@ synthesis:
 eval:
   dataset: eval/datasets/receivables/
   metrics: [task_completion, policy_violation, info_accuracy, no_fabrication, efficiency]
+
+# 通用运行器/演示入口读取的脚本（框架侧不写死场景名）
+demo:
+  messages:
+    - "你好"
+    - "我的合同号是 HT-Y2026-012"
+    - "我想分期 3 期付款，可以吗？"
+    - "好的，我同意 2026-11-15 付 380000"

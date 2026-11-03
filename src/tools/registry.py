@@ -148,3 +148,24 @@ _GLOBAL_REGISTRY = ToolRegistry()
 
 def get_registry() -> ToolRegistry:
     return _GLOBAL_REGISTRY
+
+
+def build_registry_from_config(config: Any) -> ToolRegistry:
+    """按 `scenario.tools[].impl` 动态装配注册表。
+
+    约定：工具实现模块必须暴露 `SCHEMAS: dict[str, ToolSchema]`。
+    本函数不含任何场景名或业务分支，新增场景只改 yaml 与场景包。
+    """
+    import importlib
+
+    registry = ToolRegistry()
+    for decl in config.tools:
+        module_path, _, func_name = decl.impl.rpartition(".")
+        if not module_path:
+            raise ValueError(f"工具 {decl.name!r} 的 impl 必须形如 module.func，实际为 {decl.impl!r}")
+        module = importlib.import_module(module_path)
+        schemas = getattr(module, "SCHEMAS", None)
+        if not isinstance(schemas, dict) or decl.name not in schemas:
+            raise ValueError(f"工具模块 {module_path!r} 未在 SCHEMAS 中声明 {decl.name!r}")
+        registry.register(decl.name, getattr(module, func_name), schemas[decl.name])
+    return registry

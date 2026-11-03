@@ -14,18 +14,18 @@ multi-turn-task-agent/
 ├── configs/
 │   ├── scenarios/              # receivables.yaml（主线）、milktea.yaml（第二场景）
 │   └── prompts/                # 每场景一个 system.txt 目录
-├── scenarios/                  # 场景包：loader.py（按 yaml 动态装配工具）+ milktea/（tools/llm）
+├── scenarios/                  # 场景包：milktea/（tools + llm）；装配由框架侧 build_registry_from_config / get_llm_client 完成
 ├── src/
-│   ├── core/                   # config.py（C3 配置与启动预检）、trace.py（C6）
+│   ├── core/                   # config.py（C3 配置、预检与场景发现）、trace.py（C6）
 │   ├── state/machine.py        # 元组状态机 + 受限条件求值
 │   ├── tools/
-│   │   ├── registry.py         # C2 统一返回 + 工具注册表
-│   │   └── receivables/tools.py # 6 个业务工具 + JSON Schema（mock 数据）
+│   │   ├── registry.py         # C2 统一返回 + 注册表 + build_registry_from_config（按 tools[].impl 装配）
+│   │   └── receivables/tools.py # 6 个业务工具 + JSON Schema（mock 数据；场景名仅出现在 yaml 的 impl 字段）
 │   ├── agent/                  # loop.py（ReAct + 状态机）、llm.py（接口 + Mock）、demo.py
 │   ├── guardrails/guardrails.py # C7 输入检测 / 工具侧隔离 / 输出校验
 │   ├── synthesis/rule_based.py # 规则化生成 80 条评测集
 │   ├── eval/                   # contracts.py（C1）、runner.py（评测运行器）
-│   ├── ui/                     # （骨架）app.py：Gradio 交互界面，惰性导入 gradio
+│   ├── ui/                     # app.py：Gradio 交互界面（对话 + 评测页，惰性导入 gradio）
 │   ├── adapters/               # （规划）公开数据集适配器
 │   ├── retrieval/              # bm25.py：jieba 分词 + BM25 片段检索（语料 data/knowledge/）
 │   ├── services/               # （规划）FastAPI 服务

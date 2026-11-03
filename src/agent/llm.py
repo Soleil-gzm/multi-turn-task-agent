@@ -137,6 +137,19 @@ class MockLLMClient(LLMClient):
         }
 
 
-def get_llm_client() -> LLMClient:
-    """获取 LLM 客户端。W1 默认用 mock。"""
-    return MockLLMClient()
+def get_llm_client(spec: str | None = None) -> LLMClient:
+    """获取 LLM 客户端。
+
+    spec 形如 `module.factory`（来自场景 yaml 的 `demo.llm`）；
+    缺省回落到 MockLLMClient。框架侧不写死任何场景名。
+    """
+    if not spec:
+        return MockLLMClient()
+    import importlib
+
+    module_path, _, func_name = spec.rpartition(".")
+    if not module_path:
+        raise ValueError(f"LLM spec 必须形如 module.factory，实际为 {spec!r}")
+    module = importlib.import_module(module_path)
+    factory = getattr(module, func_name)
+    return factory()

@@ -26,17 +26,17 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent.parent.parent
 TRACE_DIR = ROOT / "eval" / "reports" / "ui_traces"
 
-SCENARIO_PATH = ROOT / "configs" / "scenarios" / "receivables.yaml"
-
-BANNER_HTML = """
+def banner_html(config) -> str:
+    """顶部 Banner：场景名与规模都来自配置，界面本身不写死场景。"""
+    return f"""
 <div class="mta-banner">
-  <div class="mta-banner-title">应收账款协商 · 多轮任务型 Agent</div>
+  <div class="mta-banner-title">{_esc(config.scenario.display_name)} · 多轮任务型 Agent</div>
   <div class="mta-banner-sub">
-    配置驱动 · 元组状态机 · 6 个业务工具 · 每轮可查看状态与轨迹
+    配置驱动 · 元组状态机 · {len(config.tools)} 个业务工具 · 每轮可查看状态与轨迹
   </div>
   <div class="mta-banner-tags">
     <span class="mta-tag">YAML 注入</span>
-    <span class="mta-tag">12 条转移</span>
+    <span class="mta-tag">{len(config.state_machine.transitions)} 条转移</span>
     <span class="mta-tag">C2 统一返回</span>
     <span class="mta-tag">C6 Trace</span>
   </div>
@@ -382,11 +382,11 @@ def eval_page_html(report: dict[str, Any] | None) -> str:
     return metrics_html(report) + layer_table_html(report) + note
 
 
-def run_eval() -> dict[str, Any] | None:
-    """跑一遍 80 条评测并返回新报告（UI 按钮用，耗时约 1–2 秒）。"""
+def run_eval(config_path: str | Path | None = None) -> dict[str, Any] | None:
+    """跑一遍当前场景的评测并返回新报告（UI 按钮用，耗时约 1–2 秒）。"""
     from src.eval import runner
 
-    runner.main()
+    runner.main(config_path)
     return load_report()
 
 
@@ -455,24 +455,30 @@ def reset_state() -> tuple[list, dict[str, Any], str, str, None]:
 # Gradio 界面（惰性导入 gradio）
 # ---------------------------------------------------------------------------
 
-def create_demo(config=None, agent=None):
+def create_demo(config=None, agent=None, config_path: str | Path | None = None):
     """构建 Blocks 界面。config / agent 可注入，便于测试与替换真实模型。"""
     import gradio as gr
 
-    if config is None:
-        from src.core.config import load_config
+    from src.core.config import default_scenario_path, load_config, load_raw_config
 
-        config = load_config(str(SCENARIO_PATH))
+    path = Path(config_path) if config_path else default_scenario_path()
+    if config is None:
+        config = load_config(str(path))
 
     if agent is None:
         from src.agent.llm import get_llm_client
         from src.agent.loop import Agent
-        from src.tools.receivables.tools import build_registry
+        from src.tools.registry import build_registry_from_config
 
-        agent = Agent(config, build_registry(), get_llm_client())
+        demo_cfg = load_raw_config(path).get("demo") or {}
+        agent = Agent(
+            config,
+            build_registry_from_config(config),
+            get_llm_client(demo_cfg.get("llm")),
+        )
 
     with gr.Blocks(title="多轮任务型 Agent") as demo:
-        gr.HTML(BANNER_HTML)
+        gr.HTML(banner_html(config))
 
         with gr.Tabs():
             with gr.Tab("对话"):
@@ -531,7 +537,7 @@ def create_demo(config=None, agent=None):
                 eval_html = gr.HTML(eval_page_html(load_report()))
 
                 refresh_btn.click(lambda: eval_page_html(load_report()), outputs=[eval_html])
-                run_btn.click(lambda: eval_page_html(run_eval()), outputs=[eval_html])
+                run_btn.click(lambda: eval_page_html(run_eval(path)), outputs=[eval_html])
 
     return demo
 

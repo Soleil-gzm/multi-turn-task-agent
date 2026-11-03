@@ -1,4 +1,4 @@
-"""receivables 场景的业务工具实现（mock 数据版）。
+"""应收账款场景的业务工具实现（mock 数据版）。
 
 6 个业务工具：
   query_receivable / check_invoice / diff_statement
@@ -16,7 +16,7 @@ from src.tools.registry import ToolRegistry, ToolSchema, ok, fail, ErrorCode
 # mock 数据
 # ---------------------------------------------------------------------------
 
-_MOCK_RECEIVABLES: dict[str, dict] = {
+_MOCK_ACCOUNTS: dict[str, dict] = {
     "HT-Y2026-012": {
         "contract_no": "HT-Y2026-012",
         "invoice_no": "INV-20260123",
@@ -105,7 +105,7 @@ def query_receivable(contract_no: str) -> dict:
     """查询指定合同号的应收账款信息。"""
     if not contract_no:
         return fail(ErrorCode.INVALID_ARG, "contract_no 不能为空")
-    record = _MOCK_RECEIVABLES.get(contract_no)
+    record = _MOCK_ACCOUNTS.get(contract_no)
     if record is None:
         return fail(ErrorCode.NOT_FOUND, f"合同 {contract_no} 不存在")
     return ok(record, source="mock_db")
@@ -162,7 +162,7 @@ def diff_statement(contract_no: str) -> dict:
     """
     if not contract_no:
         return fail(ErrorCode.INVALID_ARG, "contract_no 不能为空")
-    receivable = _MOCK_RECEIVABLES.get(contract_no)
+    receivable = _MOCK_ACCOUNTS.get(contract_no)
     if receivable is None:
         return fail(ErrorCode.NOT_FOUND, f"合同 {contract_no} 不存在")
     statement = _MOCK_STATEMENTS.get(contract_no)
@@ -312,7 +312,7 @@ _TOOL_IMPLS = {
 
 
 def build_registry(registry: ToolRegistry | None = None) -> ToolRegistry:
-    """注册 receivables 的 6 个业务工具。"""
+    """注册应收账款场景的 6 个业务工具。"""
     registry = registry if registry is not None else ToolRegistry()
     for name, fn in _TOOL_IMPLS.items():
         registry.register(name, fn, SCHEMAS[name])

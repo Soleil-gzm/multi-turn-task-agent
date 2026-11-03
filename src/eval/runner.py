@@ -1,6 +1,8 @@
-"""简易评测运行器（W1）：加载评测集 → 跑 agent → 出 v0 基线报告。
+"""简易评测运行器：加载评测集 → 跑 agent → 出 v0 基线报告。
 
-用法：python -m src.eval.runner
+用法：
+    python -m src.eval.runner
+    python -m src.eval.runner --config configs/scenarios/<name>.yaml
 """
 
 from __future__ import annotations
@@ -15,10 +17,10 @@ if str(ROOT) not in sys.path:
 
 from src.agent.llm import MockLLMClient
 from src.agent.loop import Agent, new_session_id
-from src.core.config import load_config
+from src.core.config import dataset_dir, default_scenario_path, load_config
 from src.core.trace import StepType
 from src.eval.contracts import check_tool_sequence, load_cases
-from src.tools.receivables.tools import build_registry
+from src.tools.registry import build_registry_from_config
 
 
 _STALL = {
@@ -108,14 +110,14 @@ def _policy_refusal_followed(result) -> bool | None:
     return all(r in result.replies for r in refusals)
 
 
-def main() -> None:
-    config_path = ROOT / "configs" / "scenarios" / "receivables.yaml"
-    config = load_config(str(config_path))
-    registry = build_registry()
+def main(config_path: str | Path | None = None) -> None:
+    path = Path(config_path) if config_path else default_scenario_path()
+    config = load_config(str(path))
+    registry = build_registry_from_config(config)
     agent = Agent(config, registry, MockLLMClient())
 
-    cases = load_cases(ROOT / "eval" / "datasets" / "receivables" / "cases.jsonl")
-    print(f"加载 {len(cases)} 条 case\n")
+    cases = load_cases(dataset_dir(config) / "cases.jsonl")
+    print(f"场景: {config.scenario.display_name} · 加载 {len(cases)} 条 case\n")
 
     results = []
     for case in cases:
@@ -167,7 +169,7 @@ def main() -> None:
     # 工具覆盖：每个工具至少被 1 条 case 触达（防空转工具，如 P-05 的 check_invoice）
     tool_coverage: dict[str, int] = {}
     for r in results:
-        for tool in set(r["tool_calls"]):
+        for tool in sorted(set(r["tool_calls"])):
             tool_coverage[tool] = tool_coverage.get(tool, 0) + 1
     registered = set(registry.names())
     untouched = sorted(registered - set(tool_coverage))
@@ -235,4 +237,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+
+    parser = argparse.ArgumentParser(description="规则评测运行器（任意场景）")
+    parser.add_argument("--config", default=None, help="scenario.yaml 路径，缺省自动发现")
+    main(parser.parse_args().config)

@@ -1,7 +1,7 @@
 """milktea 场景的业务工具（mock 数据）。
 
 与 receivables 保持同一套 C2 契约：统一 `{ok, data, error{code,msg,retryable}, meta}` 返回。
-工具模块需暴露 `SCHEMAS`，供 `scenarios.loader.build_registry_from_config` 动态装配。
+工具模块需暴露 `SCHEMAS`，供 `src.tools.registry.build_registry_from_config` 动态装配。
 """
 
 from __future__ import annotations
@@ -154,7 +154,7 @@ _TOOL_IMPLS = {
 
 
 def build_registry(registry: ToolRegistry | None = None) -> ToolRegistry:
-    """注册 milktea 的 3 个业务工具（场景内自用；通用装配见 scenarios.loader）。"""
+    """注册 milktea 的 3 个业务工具（场景内自用；通用装配见 src.tools.registry）。"""
     registry = registry if registry is not None else ToolRegistry()
     for name, fn in _TOOL_IMPLS.items():
         registry.register(name, fn, SCHEMAS[name])

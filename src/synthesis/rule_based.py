@@ -319,7 +319,17 @@ def write_dataset(path: str | Path) -> int:
 
 
 def main() -> None:
-    out = ROOT / "eval" / "datasets" / "receivables" / "cases.jsonl"
+    import argparse
+
+    from src.core.config import dataset_dir, default_scenario_path, load_config
+
+    parser = argparse.ArgumentParser(description="规则化生成评测集（按场景配置输出）")
+    parser.add_argument("--config", default=None, help="scenario.yaml 路径，缺省自动发现")
+    args = parser.parse_args()
+
+    config_path = args.config or str(default_scenario_path())
+    out = dataset_dir(load_config(str(config_path))) / "cases.jsonl"
+
     count = write_dataset(out)
     cases = build_cases()
     layers = {}

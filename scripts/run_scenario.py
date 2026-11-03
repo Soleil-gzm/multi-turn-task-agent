@@ -23,23 +23,20 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from src.agent.llm import get_llm_client  # noqa: E402
 from src.agent.loop import Agent, new_session_id  # noqa: E402
-from src.core.config import load_config  # noqa: E402
-from scenarios.loader import (  # noqa: E402
-    build_llm,
-    build_registry_from_config,
-    load_raw_yaml,
-)
+from src.core.config import load_config, load_raw_config  # noqa: E402
+from src.tools.registry import build_registry_from_config  # noqa: E402
 
 
 def build_agent(config_path: str) -> tuple[Agent, dict]:
     config = load_config(config_path)
-    raw = load_raw_yaml(config_path)
+    raw = load_raw_config(config_path)
     demo = raw.get("demo") or {}
     agent = Agent(
         config,
         build_registry_from_config(config),
-        build_llm(demo.get("llm")),
+        get_llm_client(demo.get("llm")),
     )
     return agent, demo
 

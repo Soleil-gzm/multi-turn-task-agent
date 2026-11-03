@@ -17,11 +17,11 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from scenarios.loader import build_llm, build_registry_from_config, load_raw_yaml
-from src.agent.llm import MockLLMClient
+from src.agent.llm import MockLLMClient, get_llm_client
 from src.agent.loop import Agent, new_session_id
-from src.core.config import load_config
+from src.core.config import load_config, load_raw_config
 from src.tools.receivables.tools import build_registry as build_receivables_registry
+from src.tools.registry import build_registry_from_config
 
 MILKTEA_CONFIG = ROOT / "configs" / "scenarios" / "milktea.yaml"
 RECEIVABLES_CONFIG = ROOT / "configs" / "scenarios" / "receivables.yaml"
@@ -50,8 +50,8 @@ EXCEPTION_MESSAGES = ["你好", "我不记得会员号", "真的不记得了"]
 
 def _milktea_agent() -> tuple[Agent, dict]:
     config = load_config(str(MILKTEA_CONFIG))
-    demo = load_raw_yaml(MILKTEA_CONFIG).get("demo") or {}
-    agent = Agent(config, build_registry_from_config(config), build_llm(demo.get("llm")))
+    demo = load_raw_config(MILKTEA_CONFIG).get("demo") or {}
+    agent = Agent(config, build_registry_from_config(config), get_llm_client(demo.get("llm")))
     return agent, demo
 
 
@@ -70,6 +70,15 @@ def _visited_stages(trace) -> list[str]:
 # ---------------------------------------------------------------------------
 
 class TestScenarioPackaging:
+    def test_src_contains_no_scenario_names(self):
+        """标准 2：框架侧零场景名（grep src/ 为空）。"""
+        hits = []
+        for path in (ROOT / "src").rglob("*.py"):
+            text = path.read_text(encoding="utf-8")
+            if re.search(r"milktea|receivables", text, re.I):
+                hits.append(path.as_posix())
+        assert hits == [], f"src 中仍存在场景名: {hits}"
+
     def test_config_preflight_passes(self):
         cfg = load_config(str(MILKTEA_CONFIG))
         assert cfg.scenario.id == "milktea"
@@ -93,14 +102,14 @@ class TestScenarioPackaging:
         assert schema["function"]["parameters"]["required"] == ["member_id"]
 
     def test_demo_script_declared_in_yaml(self):
-        demo = load_raw_yaml(MILKTEA_CONFIG)["demo"]
+        demo = load_raw_config(MILKTEA_CONFIG)["demo"]
         assert demo["messages"] == HAPPY_MESSAGES
         assert demo["llm"].startswith("scenarios.milktea.")
 
     def test_transition_conditions_use_known_facts_only(self):
         """差异可列举：每条转移只使用框架内置事实 + from/to/when 三个字段。"""
         operators = {"and", "or", "true", "false", "None"}
-        raw = load_raw_yaml(MILKTEA_CONFIG)["state_machine"]["transitions"]
+        raw = load_raw_config(MILKTEA_CONFIG)["state_machine"]["transitions"]
         for t in raw:
             assert set(t) <= {"from", "to", "when"}, t
             for var in re.findall(r"[a-zA-Z_][a-zA-Z0-9_]*", t["when"]):

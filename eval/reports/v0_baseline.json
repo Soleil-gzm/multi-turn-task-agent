@@ -16,8 +16,8 @@
   },
   "tool_coverage": {
     "query_policy": 50,
-    "record_promise": 28,
     "query_receivable": 76,
+    "record_promise": 28,
     "check_invoice": 4,
     "escalate": 52,
     "diff_statement": 6

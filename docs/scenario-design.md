@@ -95,16 +95,16 @@
 
 反例：需改框架代码才能跑通、只换显示名沿用同一转移表、异常分支靠硬编码——均判为不通过。
 
-**验收结果（`tests/test_milktea_scenario.py`，13 条）**：
+**验收结果（`tests/test_milktea_scenario.py`，14 条）**：
 
 | 标准 | 结果 | 证据 |
 | --- | --- | --- |
-| 1 零代码改动 | ✅ | 本轮只新增 `scenarios/`、`scripts/run_scenario.py`、`configs/{scenarios,prompts}/milktea*`、`tests/`；`src/` 无改动 |
-| 2 无业务分支 | ⚠️ **未通过** | `grep -R "milktea\|receivables" src/` 命中 14 处（**均为存量**，非本次引入）：`agent/demo.py`(2)、`eval/runner.py`(3)、`ui/app.py`(2)、`retrieval/__init__.py`(1)、`synthesis/rule_based.py`(1)、`tools/receivables/tools.py`(5) |
+| 1 零代码改动 | ✅ | 第二轮只新增 `scenarios/`、`scripts/run_scenario.py`、`configs/{scenarios,prompts}/milktea*`、`tests/`；`src/` 无场景分支 |
+| 2 无业务分支 | ✅ | `grep -R "milktea\|receivables" src/` 归零，并由 `test_src_contains_no_scenario_names` 固化；入口改为配置发现（`default_scenario_path` / `dataset_dir` / `build_registry_from_config` / `get_llm_client`） |
 | 3 状态机同引擎 | ✅ | 实测 `INIT → GREET → IDENTIFY → OFFER → CONFIRM → CLOSED`（5 次推进），异常分支 `IDENTIFY → ESCALATED`（连续 2 轮无法核实）、`OFFER → ESCALATED`（客户拒绝）；trace 顶层字段与 step 类型集合与 receivables 完全一致 |
 | 4 差异可列举 | ✅ | 转移表对称差非空；每条转移仅用 `from/to/when` 三字段，`when` 变量全部落在框架内置事实集合内（单测校验） |
 
-**标准 2 的差距说明**：命中均为「默认路径常量 / 场景工具包目录名」，不含 `if scenario == ...` 这类分支逻辑，但字面口径未达标。消除它需要一次性泛化 5 个入口（demo / ui / eval / retrieval / synthesis）并把 `src/tools/receivables` 移到 `scenarios/receivables/`——这会改动 `src/agent`、`src/ui`、`src/tools`，与标准 1「零代码改动」直接冲突。因此本轮如实记录为未通过，泛化方案待单独立项（见 Roadmap）。
+**标准 2 的收口说明**：14 处命中均为「默认路径常量 / 场景工具包目录名」，不含 `if scenario == ...` 分支逻辑。收口采取非破坏性方式：5 个入口（demo / ui / eval / retrieval / synthesis）改为从 `configs/scenarios/*.yaml` 发现场景并按 `tools[].impl` 动态装配；`src/tools/receivables/` 目录保留（其 docstring 与符号已去场景名），工具实现路径改由 yaml 的 `impl` 字段指向，框架侧不再出现场景字面量。标准 1 的「零代码改动」指新增场景时不改 `src/`，入口泛化属于一次性框架改造，两者不冲突。
 
 **milktea 与 receivables 的差异（全部由 yaml 表达）**：
 

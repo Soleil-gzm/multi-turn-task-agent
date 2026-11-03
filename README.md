@@ -30,7 +30,7 @@
 
 ## 快速开始
 
-> **当前状态**：W1 框架主干、W2 数据层、G3 交互界面与 milktea 第二场景已完成——Walking Skeleton 跑通，12 条转移配置与逐条单测、6 个 mock 业务工具、80 条评测 case、话术表（39 条）与 policy 知识库（24 条片段，BM25 检索已接入 `query_policy`）、第二场景（3 工具 + 5 阶段 + 异常分支）、141 个单测与 v0 基线报告（Mock）。待做：真实模型接入（当前为 `MockLLMClient`）、FastAPI 服务化、入口泛化（消除 `src/` 中的默认场景名）。各契约实现状态见 [Roadmap · 契约状态](docs/roadmap.md#契约状态诚实反映代码进度每个里程碑更新)。
+> **当前状态**：W1 框架主干、W2 数据层、G3 交互界面与 milktea 第二场景已完成——Walking Skeleton 跑通，12 条转移配置与逐条单测、6 个 mock 业务工具、80 条评测 case、话术表（39 条）与 policy 知识库（24 条片段，BM25 检索已接入 `query_policy`）、第二场景（3 工具 + 5 阶段 + 异常分支）、142 个单测与 v0 基线报告（Mock）。入口已泛化：demo / ui / eval 从 `configs/scenarios/*.yaml` 发现场景并按 `tools[].impl` 装配，`src/` 内无场景名。待做：真实模型接入（当前为 `MockLLMClient`）、FastAPI 服务化。各契约实现状态见 [Roadmap · 契约状态](docs/roadmap.md#契约状态诚实反映代码进度每个里程碑更新)。
 
 ### 环境准备
 
@@ -41,7 +41,7 @@
 
 ```bash
 python -c "import pydantic, yaml, pytest, jieba; print('deps ok')"
-python -m pytest tests/ -q      # 期望 141 passed
+python -m pytest tests/ -q      # 期望 142 passed
 ```
 
 ```bash
@@ -57,7 +57,7 @@ Windows PowerShell 通常没有 `make`，直接执行右列等价命令即可；
 | 目的 | 有 `make` | 无 `make`（Windows PowerShell） |
 | --- | --- | --- |
 | 多轮对话演示，trace 落盘 `eval/reports/traces/` | `make demo` | `python -m src.agent.demo` |
-| 契约 / 数据层 / UI / 场景单元测试（141 passed） | `make test` | `python -m pytest tests/ -v` |
+| 契约 / 数据层 / UI / 场景单元测试（142 passed） | `make test` | `python -m pytest tests/ -v` |
 | 跑 80 条评测 case，生成分层 v0 报告 | `make eval` | `python -m src.eval.runner` |
 | 启动交互界面（Gradio） | `make ui` | `python -m src.ui.app` |
 | 运行任意场景（通用运行器） | — | `python scripts/run_scenario.py --config configs/scenarios/milktea.yaml` |

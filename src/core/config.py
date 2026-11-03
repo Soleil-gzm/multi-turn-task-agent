@@ -9,11 +9,16 @@
 from __future__ import annotations
 
 import importlib
+import os
 import re
+from pathlib import Path
 from typing import Any
 
 import yaml
 from pydantic import BaseModel, Field, model_validator
+
+ROOT = Path(__file__).resolve().parent.parent.parent
+SCENARIOS_DIR = ROOT / "configs" / "scenarios"
 
 
 class ScenarioMeta(BaseModel):
@@ -265,3 +270,50 @@ def load_config(path: str) -> ScenarioConfig:
     _check_policy(cfg)
     _check_response(cfg)
     return cfg
+
+
+# ---------------------------------------------------------------------------
+# 场景发现（入口泛化的基础：框架侧不写死任何场景名）
+# ---------------------------------------------------------------------------
+
+def load_raw_config(path: str | Path) -> dict[str, Any]:
+    """读取原始 yaml（含框架 schema 之外的 `demo` 段等）。"""
+    with open(path, encoding="utf-8") as f:
+        return yaml.safe_load(f) or {}
+
+
+def list_scenario_paths() -> list[Path]:
+    """列出全部场景配置，按文件名排序。"""
+    return sorted(SCENARIOS_DIR.glob("*.yaml"))
+
+
+def default_scenario_path() -> Path:
+    """默认场景：`MTA_CONFIG` 环境变量 > 第一个带评测集的场景 > 第一个场景。
+
+    判定依据是配置字段（`eval.dataset` 下是否存在 cases.jsonl），而非场景名。
+    """
+    env = os.environ.get("MTA_CONFIG")
+    if env:
+        path = Path(env)
+        if not path.exists():
+            raise ConfigError(f"MTA_CONFIG 指向的配置不存在: {path}")
+        return path
+
+    candidates = list_scenario_paths()
+    if not candidates:
+        raise ConfigError(f"{SCENARIOS_DIR} 下没有任何 scenario yaml")
+
+    for path in candidates:
+        raw = load_raw_config(path)
+        dataset = (raw.get("eval") or {}).get("dataset")
+        if dataset and (ROOT / dataset / "cases.jsonl").exists():
+            return path
+    return candidates[0]
+
+
+def dataset_dir(config: ScenarioConfig) -> Path:
+    """由配置的 `eval.dataset` 解析评测集目录（相对项目根）。"""
+    dataset = (config.eval or {}).get("dataset")
+    if not dataset:
+        raise ConfigError(f"场景 {config.scenario.id!r} 未配置 eval.dataset")
+    return ROOT / dataset
