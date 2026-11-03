@@ -13,6 +13,14 @@ from typing import Any
 import jieba
 import yaml
 
+# jieba 词典缓存默认写到系统临时目录（可能在其他盘），改为随项目走。
+# jieba 0.42.1 的缓存位置由 Tokenizer 实例（jieba.dt）的 cache_file / tmp_dir 控制，
+# 无 set_cache_file 顶层 API，直接设置属性即可，须在首次分词前生效。
+_CACHE_DIR = Path(__file__).resolve().parents[2] / "output" / "jieba_cache"
+_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+jieba.dt.tmp_dir = str(_CACHE_DIR)
+jieba.dt.cache_file = str(_CACHE_DIR / "jieba.cache")
+
 K1 = 1.5
 B = 0.75
 
