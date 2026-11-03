@@ -16,7 +16,7 @@ multi-turn-task-agent/
 │   └── prompts/                # 每场景一个 system.txt 目录
 ├── scenarios/                  # 场景包：milktea/（tools + llm）；装配由框架侧 build_registry_from_config / get_llm_client 完成
 ├── src/
-│   ├── core/                   # config.py（C3 配置、预检与场景发现）、trace.py（C6）
+│   ├── core/                   # config.py（C3 配置、预检与场景发现）、env.py（.env 极简加载）、trace.py（C6）
 │   ├── state/machine.py        # 元组状态机 + 受限条件求值
 │   ├── tools/
 │   │   ├── registry.py         # C2 统一返回 + 注册表 + build_registry_from_config（按 tools[].impl 装配）
@@ -27,7 +27,7 @@ multi-turn-task-agent/
 │   ├── eval/                   # contracts.py（C1）、runner.py（评测运行器）
 │   ├── ui/                     # app.py：Gradio 交互界面（对话 + 评测页，惰性导入 gradio）
 │   ├── adapters/               # （规划）公开数据集适配器
-│   ├── retrieval/              # bm25.py：jieba 分词 + BM25 片段检索（语料 data/knowledge/）
+│   ├── retrieval/              # bm25.py：jieba 分词（缓存重定向到 output/jieba_cache/）+ BM25 片段检索（语料 data/knowledge/）
 │   ├── services/               # （规划）FastAPI 服务
 │   └── mcp/                    # （规划）MCP 工具暴露
 ├── data/
@@ -37,7 +37,7 @@ multi-turn-task-agent/
 │   ├── datasets/receivables/cases.jsonl   # 80 条评测集（含 oracle 与 content_hash）
 │   ├── graders/                # （规划）LLM Judge / 轨迹审计
 │   ├── metrics/                # （规划）指标采集
-│   └── reports/                # v0_baseline.json + traces/ + manual_review_20.md
+│   └── reports/                # v0_baseline.json（Mock k=3）+ v1_smoke_k1.json（真实模型冒烟）+ traces/ + manual_review_20.md
 ├── scripts/
 │   ├── build_talk_template.py  # 话术 YAML → xlsx
 │   └── run_scenario.py         # 通用场景运行器（读 yaml，含 demo.messages / demo.llm）
@@ -245,7 +245,7 @@ eval:
   metrics: [task_completion, policy_violation, info_accuracy, no_fabrication, efficiency]
 ```
 
-换场景 = 换一个 yaml + 一份数据 + 一份知识库。`milktea.yaml`（规划中，尚未创建）将使用同一 schema，仅字段值不同（见 [场景设计](scenario-design.md#4-场景二milktea业务规则注入验证)）。
+换场景 = 换一个 yaml + 一份数据 + 一份知识库。`milktea.yaml` 已按同一 schema 落地（仅字段值不同），验证记录见 [场景设计](scenario-design.md#4-场景二milktea业务规则注入验证)。
 
 ## 5. 六个业务工具
 

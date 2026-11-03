@@ -32,10 +32,25 @@
 - **入口泛化（milktea 标准 2 收口）**：demo / ui / eval / retrieval / synthesis 改为配置发现（`default_scenario_path` / `dataset_dir`）与 `tools[].impl` 动态装配（`build_registry_from_config`）、LLM 工厂（`get_llm_client`）；`grep -R "milktea\|receivables" src/` 为 0，`python -m src.eval.runner` 退出码 0（工具覆盖 6/6）
 - **G2 真实模型接入 + k≥3 评测（已跑通）**：`OpenAICompatibleClient`（OpenAI / DeepSeek / Qwen / vLLM 兼容，凭证走 `MTA_LLM_*`，缺配置 fail-fast）、Agent 工具调用消息协议修正（assistant `tool_calls` → `tool`）、runner 支持 `--k`（默认 3）与 `--limit`（冒烟）、`Pass^k` / `Pass@1` 与 mean ± std；Mock k=3 报告 Pass^3 100%、240 次试验；真实模型 `deepseek-flash` k=1 core 16 条冒烟：终态匹配 81.2%、工具覆盖 6/6、矛盾告知 3/3（见 `eval/reports/v1_smoke_k1.json`）
 
-### 进行中
+### 待办任务清单
 
-- 真实模型正式基线（80 条 k=3）：`deepseek-flash` 已完成 core 16 条 k=1 冒烟（81.2% Pass@1），`eval/reports/v1_real_k3.json` 尚未产出；全量 80×3 次调用耗时较长，建议后台执行
-- 冒烟暴露的模型侧问题（非链路故障）：① 存在账实差异时倾向 `escalate` 而非按客户确认的账面金额登记；② 个别样本先 `query_policy` 后核身份，工具顺序违规。后续可在系统提示中强化「客户确认账面口径后继续办理」与工具调用顺序约束
+按优先级（P0 本周 / P1 MVP 收口 / P2 Stretch）排序；工作量为相对量级（S≈半天内 / M≈1–3 天 / L≈3 天以上）。「依赖」列出必须先完成的前置任务编号。
+
+| # | 优先级 | 工作量 | 依赖 | 目标 | 实现路径 | 验收标准 |
+| --- | --- | --- | --- | --- | --- | --- |
+| T1 | P0 | M | — | 产出真实模型正式基线 `v1_real_k3`（80 条 × k=3） | 后台执行 `python -m src.eval.runner --model openai_compat --k 3 --report eval/reports/v1_real_k3.json`，完成后把指标写入 README 评测表与 UI 可读报告 | 报告生成且字段完整（含 `model_meta` / `pass_power_k` / 分层指标）；README 与本文数字同步；`pytest` 仍全绿 |
+| T2 | P0 | S | — | 修复冒烟暴露的模型侧行为问题 | 在 `loop.py` 系统提示中强化两条：① 客户声明以账面为准后不得再以账实差异为由拖延或升级；② 涉及政策类工具前先完成身份核验（`query_receivable` 在前） | core 16 条 k=1 冒烟终态匹配 ≥ 15/16；`record_promise` 早于 `query_policy` 的顺序违规为 0；无新增回归（Mock k=3 仍 Pass^3 100%） |
+| T3 | P1 | L | T1 | C5 服务化：`POST /chat`、`GET /sessions/{id}`、`GET /trace/{trace_id}`、`POST /eval`、`GET /eval/{task_id}`，SQLite 持久化 + 幂等 + `docker compose up` | 在 `src/services/` 实现 FastAPI 路由（复用 `Agent.start/session.send` 与 `eval.runner.main`），会话与 trace 落 SQLite，`POST /chat` 幂等键去重 | 换机器一条命令（`docker compose up`）起服务并完成一次多轮对话；`POST /eval` 异步执行可查状态；契约状态 C5 升为「部分实现」 |
+| T4 | P1 | M | T1、T2 | 真实模型对抗层验证：40 条 adversarial 产出注入拦截率 | runner 增加注入拦截判定（模型未执行越权指令且未泄露政策外信息），对 injection / indirect_injection 标签用例统计 | 报告含 `injection_block_rate`（8 条注入样本，含 2 条间接）；README 评测表「注入拦截率」由「未采集」变为真实数字 |
+| T5 | P2 | M | T3 | C4 故障注入 MVP 3 类：工具超时 / 500 / schema 错 | 工具注册表增加可配置故障注入开关（按 meta 或环境变量触发），循环内按契约走降级/重试路径，trace 落 `degradation` 步 | 3 类各有 1 个评测用例且通过；trace 中可见 `degradation` 标记；契约状态 C4 升为「部分实现」 |
+| T6 | P2 | M | T4 | C7 决策侧护栏补强：注入样本的模型侧违规统计与输出侧校验扩展 | 评测报告聚合「模型是否执行越权指令」；输出侧对编造单据号/金额的检测从 Mock 扩展到真实模型轨迹审计 | 报告含决策侧违规率；对抗层 Pass^k 不随护栏增强而异常下降（区分「正确拒绝」与「护栏误伤」） |
+| T7 | P2 | S | T1 | 工具 mock 数据扩展：完整企业集合、金额分布、30% 脏数据 | 扩充 `src/tools/receivables/tools.py` 的 mock 单据（合同 / 发票 / 对账单 ≥ 30 个合同），按 scenario-design §3 的金额分布与脏数据比例生成 | 评测集抽样覆盖的合同在 mock 中均可查；脏数据用例在 boundary 层可复现 |
+| T8 | P2 | L | T3 | RiSAWOZ 公开集接入与评测器校准（Stretch 预算 3–4 天，含降级预案） | `src/adapters/` 实现适配器 + 口径映射；第 3 天未跑通则降级为口径对照文档 | 端到端可评测，或产出字段映射表 + 粒度差异清单 + 无法映射项 |
+| T9 | P2 | M | T4 | 弱模型对照报告：本地小模型（vLLM/Ollama）跑同套 80 条 | 用 `--model openai_compat` 指向本地端点，对比 Pass^k / 工具均分 | 产出对照表，证明评测集有区分度（弱模型显著低于 deepseek-flash） |
+| T10 | P2 | M | T1 | LLM Judge + 轨迹审计：30 条校准集抽样复判 | 新增 `eval/graders/`：Judge prompt + 与规则评测器的一致性统计 | Judge 与规则评测器在 30 条校准集上的一致率 ≥ 80%，差异项有归因说明 |
+| T11 | P2 | L | — | 完整合成管线（5 阶段 + 概率矩阵 + 300→120 筛选），评测集扩到 120 条 | 扩展 `src/synthesis/`，保持「合成即 oracle」与 content_hash 可重建 | 120 条（核心/边界按比例补齐，对抗 40 不变）；生成器确定性单测通过；Mock k=3 报告无回归 |
+
+完成任一任务后同步更新：本表状态 → 契约状态表 → README 对应数字（保持「文档不先行」机制）。
 
 ### 契约状态（诚实反映代码进度，每个里程碑更新）
 
@@ -61,12 +76,14 @@
 | 场景数据层 | receivables 话术表 + 50–80 条案例（规则化生成，含 oracle）+ policy 知识库 | 占位符三方一致校验通过 | 已完成（80 条 case 含 oracle 与 content_hash；39 条话术表 + 24 条知识库片段，占位符三方一致校验入测试） |
 | 状态机与工具层 | 12 条转移 + 6 个业务工具（mock 单据） | 每条转移 1 个单测 | 已完成（12 条转移逐条单测，6 工具已实现） |
 | 服务化 | FastAPI `/chat` + SQLite + `docker compose up` | 换机器一条命令起来 | 未开始 |
-| 评测落地 | 规则评测器 + 50–80 条评测集 + v0 基线报告 + 人工抽检 20 条 + 对抗 40 条（含 ≥2 条间接注入） | `make eval` 一条命令出报告 | 部分完成（评测器与报告链路已通；评测集 80 条含对抗 40 条与 2 条间接注入；runner 支持 k 次重复与 Pass^k；当前 v0 为 Mock k=3：终态匹配 100.0% ± 0.0%、完成率 35.0% ± 0.0%、工具均分 0.80、Pass^3 100%（80/80）、矛盾告知率 100%（18/18）、超政策拒绝话术率 100%（30/30）；人工抽检 20 条 20/20 通过；真实模型基线待凭证） |
+| 评测落地 | 规则评测器 + 50–80 条评测集 + v0 基线报告 + 人工抽检 20 条 + 对抗 40 条（含 ≥2 条间接注入） | `make eval` 一条命令出报告 | 部分完成（评测器与报告链路已通；评测集 80 条含对抗 40 条与 2 条间接注入；runner 支持 k 次重复与 Pass^k；当前 v0 为 Mock k=3：终态匹配 100.0% ± 0.0%、完成率 35.0% ± 0.0%、工具均分 0.80、Pass^3 100%（80/80）、矛盾告知率 100%（18/18）、超政策拒绝话术率 100%（30/30）；人工抽检 20 条 20/20 通过；真实模型已完成 core 16 条 k=1 冒烟（81.2%），80 条 k=3 正式基线见 T1） |
 | 文档 | prior-art 对照（只读，不接入数据） | 对照清单可逐项勾选 | 已完成（[prior-art.md](prior-art.md)：7 条已对齐 / 6 条待核对 / 1 条不适用） |
 
 > MVP 的判定标准是「完整可讲」：有框架、有业务场景、有评测数字、有服务化入口。**先保证闭环，再叠加亮点。**
 
 ### Stretch（有余力再做，不承诺日期）
+
+> 可执行化拆解（依赖与验收标准）统一收敛到上方「待办任务清单」T5–T11，本表保留范围取舍的原始理由。
 
 | 项 | 内容 | 为什么可以后置 |
 | --- | --- | --- |

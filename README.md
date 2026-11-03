@@ -30,13 +30,13 @@
 
 ## 快速开始
 
-> **当前状态**：W1 框架主干、W2 数据层、G3 交互界面与 milktea 第二场景已完成——Walking Skeleton 跑通，12 条转移配置与逐条单测、6 个 mock 业务工具、80 条评测 case、话术表（39 条）与 policy 知识库（24 条片段，BM25 检索已接入 `query_policy`）、第二场景（3 工具 + 5 阶段 + 异常分支）、160 个单测与 v0 基线报告（Mock）。入口已泛化：demo / ui / eval 从 `configs/scenarios/*.yaml` 发现场景并按 `tools[].impl` 装配，`src/` 内无场景名。真实模型客户端（OpenAI 兼容）与 k=3 重复评测已就绪，待凭证产出真实基线；待做：真实模型基线实跑、FastAPI 服务化。各契约实现状态见 [Roadmap · 契约状态](docs/roadmap.md#契约状态诚实反映代码进度每个里程碑更新)。
+> **当前状态**：W1 框架主干、W2 数据层、G3 交互界面与 milktea 第二场景已完成——Walking Skeleton 跑通，12 条转移配置与逐条单测、6 个 mock 业务工具、80 条评测 case、话术表（39 条）与 policy 知识库（24 条片段，BM25 检索已接入 `query_policy`）、第二场景（3 工具 + 5 阶段 + 异常分支）、160 个单测与 v0 基线报告（Mock）。入口已泛化：demo / ui / eval 从 `configs/scenarios/*.yaml` 发现场景并按 `tools[].impl` 装配，`src/` 内无场景名。真实模型客户端（OpenAI 兼容）与 k≥3 重复评测已跑通——`deepseek-flash` core 16 条 k=1 冒烟：终态匹配 81.2%、工具覆盖 6/6（见 [评测结果](#真实模型冒烟v1k1)）；待做：真实模型 80 条 k=3 正式基线、FastAPI 服务化。各契约实现状态见 [Roadmap · 契约状态](docs/roadmap.md#契约状态诚实反映代码进度每个里程碑更新)。
 
 ### 环境准备
 
 - Python **3.10+**：代码仅使用 `from __future__ import annotations`、`X | Y` 等 3.10 语法，未使用 3.11+ 专有特性
 - 本地实测版本 **3.13.9**（`python --version`）；不强制某一小版本，以实际解释器为准
-- `pydantic` / `pyyaml` / `pytest` / `jieba` 为运行与测试必需（`jieba` 供检索层分词）；`gradio==6.31.0` 为交互界面依赖（已锁定）；`fastapi` / `uvicorn` / `httpx` 为服务化阶段预留
+- `pydantic` / `pyyaml` / `pytest` / `jieba` 为运行与测试必需（`jieba` 供检索层分词，其词典缓存重定向到 `output/jieba_cache/`，不写系统临时目录）；`gradio==6.31.0` 为交互界面依赖（已锁定）；`fastapi` / `uvicorn` / `httpx` 为服务化阶段预留
 - 环境自检（应全部成功）：
 
 ```bash
