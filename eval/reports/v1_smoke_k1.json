@@ -1,0 +1,618 @@
+{
+  "model": "deepseek-flash",
+  "model_meta": {
+    "provider": "openai-compat",
+    "model": "deepseek-flash",
+    "base_url": "https://api.deepseek.com",
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "seed": null
+  },
+  "k": 1,
+  "total_cases": 16,
+  "total_trials": 16,
+  "stage_match_rate": 0.8125,
+  "task_completion_rate": 0.8125,
+  "avg_tool_score": 0.7687,
+  "pass_power_k": 0.8125,
+  "pass_at_1": 0.8125,
+  "metrics": {
+    "stage_match_rate": {
+      "mean": 0.8125,
+      "std": 0.0
+    },
+    "task_completion_rate": {
+      "mean": 0.8125,
+      "std": 0.0
+    },
+    "avg_tool_score": {
+      "mean": 0.7687,
+      "std": 0.0
+    },
+    "pass_at_1": {
+      "mean": 0.8125,
+      "std": 0.0
+    },
+    "contradiction_rate": {
+      "mean": 1.0,
+      "std": 0.0
+    },
+    "policy_refusal_rate": {
+      "mean": null,
+      "std": null
+    }
+  },
+  "runs": [
+    {
+      "run": 0,
+      "stage_match_rate": 0.8125,
+      "task_completion_rate": 0.8125,
+      "avg_tool_score": 0.7687437500000001,
+      "pass_at_1": 0.8125,
+      "contradiction_rate": 1.0,
+      "policy_refusal_rate": null
+    }
+  ],
+  "by_layer": {
+    "core": {
+      "count": 16,
+      "stage_match_rate": 0.8125,
+      "avg_tool_score": 0.7687437500000001,
+      "pass_at_1": 0.8125,
+      "pass_power_k": 0.8125
+    }
+  },
+  "tool_coverage": {
+    "check_invoice": 9,
+    "diff_statement": 7,
+    "escalate": 2,
+    "query_policy": 15,
+    "query_receivable": 16,
+    "record_promise": 14
+  },
+  "untouched_tools": [],
+  "contradiction": {
+    "applicable": 3,
+    "followed": 3,
+    "rate": 1.0
+  },
+  "policy_refusal": {
+    "applicable": 0,
+    "followed": 0,
+    "rate": null
+  },
+  "results": [
+    {
+      "case_id": "REC-CORE-001",
+      "layer": "core",
+      "k": 1,
+      "successes": 1,
+      "pass_k": true,
+      "stage_match_rate": 1.0,
+      "avg_tool_score": 0.8,
+      "trials": [
+        {
+          "run": 0,
+          "case_id": "REC-CORE-001",
+          "layer": "core",
+          "stage": "CLOSED",
+          "expected_stage": "CLOSED",
+          "stage_match": true,
+          "task_completed": true,
+          "tool_score": 0.8,
+          "tool_calls": [
+            "query_receivable",
+            "query_policy",
+            "record_promise",
+            "record_promise",
+            "record_promise"
+          ],
+          "violations": 0,
+          "model_violations": [],
+          "contradiction_followed": null,
+          "policy_refusal_followed": null,
+          "success": true
+        }
+      ]
+    },
+    {
+      "case_id": "REC-CORE-002",
+      "layer": "core",
+      "k": 1,
+      "successes": 1,
+      "pass_k": true,
+      "stage_match_rate": 1.0,
+      "avg_tool_score": 0.8,
+      "trials": [
+        {
+          "run": 0,
+          "case_id": "REC-CORE-002",
+          "layer": "core",
+          "stage": "CLOSED",
+          "expected_stage": "CLOSED",
+          "stage_match": true,
+          "task_completed": true,
+          "tool_score": 0.8,
+          "tool_calls": [
+            "query_receivable",
+            "query_policy",
+            "record_promise"
+          ],
+          "violations": 0,
+          "model_violations": [],
+          "contradiction_followed": null,
+          "policy_refusal_followed": null,
+          "success": true
+        }
+      ]
+    },
+    {
+      "case_id": "REC-CORE-003",
+      "layer": "core",
+      "k": 1,
+      "successes": 1,
+      "pass_k": true,
+      "stage_match_rate": 1.0,
+      "avg_tool_score": 0.8,
+      "trials": [
+        {
+          "run": 0,
+          "case_id": "REC-CORE-003",
+          "layer": "core",
+          "stage": "CLOSED",
+          "expected_stage": "CLOSED",
+          "stage_match": true,
+          "task_completed": true,
+          "tool_score": 0.8,
+          "tool_calls": [
+            "query_receivable",
+            "diff_statement",
+            "query_policy",
+            "check_invoice",
+            "record_promise",
+            "record_promise",
+            "record_promise"
+          ],
+          "violations": 0,
+          "model_violations": [],
+          "contradiction_followed": true,
+          "policy_refusal_followed": null,
+          "success": true
+        }
+      ]
+    },
+    {
+      "case_id": "REC-CORE-004",
+      "layer": "core",
+      "k": 1,
+      "successes": 1,
+      "pass_k": true,
+      "stage_match_rate": 1.0,
+      "avg_tool_score": 0.8,
+      "trials": [
+        {
+          "run": 0,
+          "case_id": "REC-CORE-004",
+          "layer": "core",
+          "stage": "CLOSED",
+          "expected_stage": "CLOSED",
+          "stage_match": true,
+          "task_completed": true,
+          "tool_score": 0.8,
+          "tool_calls": [
+            "query_receivable",
+            "diff_statement",
+            "query_policy",
+            "record_promise",
+            "record_promise",
+            "record_promise"
+          ],
+          "violations": 0,
+          "model_violations": [],
+          "contradiction_followed": null,
+          "policy_refusal_followed": null,
+          "success": true
+        }
+      ]
+    },
+    {
+      "case_id": "REC-CORE-005",
+      "layer": "core",
+      "k": 1,
+      "successes": 1,
+      "pass_k": true,
+      "stage_match_rate": 1.0,
+      "avg_tool_score": 0.8,
+      "trials": [
+        {
+          "run": 0,
+          "case_id": "REC-CORE-005",
+          "layer": "core",
+          "stage": "CLOSED",
+          "expected_stage": "CLOSED",
+          "stage_match": true,
+          "task_completed": true,
+          "tool_score": 0.8,
+          "tool_calls": [
+            "query_receivable",
+            "diff_statement",
+            "query_policy",
+            "record_promise",
+            "record_promise",
+            "record_promise"
+          ],
+          "violations": 0,
+          "model_violations": [],
+          "contradiction_followed": true,
+          "policy_refusal_followed": null,
+          "success": true
+        }
+      ]
+    },
+    {
+      "case_id": "REC-CORE-006",
+      "layer": "core",
+      "k": 1,
+      "successes": 0,
+      "pass_k": false,
+      "stage_match_rate": 0.0,
+      "avg_tool_score": 0.6333,
+      "trials": [
+        {
+          "run": 0,
+          "case_id": "REC-CORE-006",
+          "layer": "core",
+          "stage": "NEGOTIATE",
+          "expected_stage": "CLOSED",
+          "stage_match": false,
+          "task_completed": false,
+          "tool_score": 0.6333,
+          "tool_calls": [
+            "query_receivable",
+            "record_promise",
+            "record_promise",
+            "escalate"
+          ],
+          "violations": 0,
+          "model_violations": [],
+          "contradiction_followed": null,
+          "policy_refusal_followed": null,
+          "success": false
+        }
+      ]
+    },
+    {
+      "case_id": "REC-CORE-007",
+      "layer": "core",
+      "k": 1,
+      "successes": 0,
+      "pass_k": false,
+      "stage_match_rate": 0.0,
+      "avg_tool_score": 0.6333,
+      "trials": [
+        {
+          "run": 0,
+          "case_id": "REC-CORE-007",
+          "layer": "core",
+          "stage": "CONFIRM",
+          "expected_stage": "CLOSED",
+          "stage_match": false,
+          "task_completed": false,
+          "tool_score": 0.6333,
+          "tool_calls": [
+            "query_receivable",
+            "query_policy",
+            "check_invoice",
+            "escalate"
+          ],
+          "violations": 0,
+          "model_violations": [],
+          "contradiction_followed": null,
+          "policy_refusal_followed": null,
+          "success": false
+        }
+      ]
+    },
+    {
+      "case_id": "REC-CORE-008",
+      "layer": "core",
+      "k": 1,
+      "successes": 1,
+      "pass_k": true,
+      "stage_match_rate": 1.0,
+      "avg_tool_score": 0.8,
+      "trials": [
+        {
+          "run": 0,
+          "case_id": "REC-CORE-008",
+          "layer": "core",
+          "stage": "CLOSED",
+          "expected_stage": "CLOSED",
+          "stage_match": true,
+          "task_completed": true,
+          "tool_score": 0.8,
+          "tool_calls": [
+            "query_receivable",
+            "diff_statement",
+            "query_policy",
+            "check_invoice",
+            "record_promise",
+            "record_promise",
+            "record_promise"
+          ],
+          "violations": 0,
+          "model_violations": [],
+          "contradiction_followed": null,
+          "policy_refusal_followed": null,
+          "success": true
+        }
+      ]
+    },
+    {
+      "case_id": "REC-CORE-009",
+      "layer": "core",
+      "k": 1,
+      "successes": 1,
+      "pass_k": true,
+      "stage_match_rate": 1.0,
+      "avg_tool_score": 0.8,
+      "trials": [
+        {
+          "run": 0,
+          "case_id": "REC-CORE-009",
+          "layer": "core",
+          "stage": "CLOSED",
+          "expected_stage": "CLOSED",
+          "stage_match": true,
+          "task_completed": true,
+          "tool_score": 0.8,
+          "tool_calls": [
+            "query_receivable",
+            "query_policy",
+            "check_invoice",
+            "record_promise",
+            "record_promise",
+            "record_promise"
+          ],
+          "violations": 0,
+          "model_violations": [],
+          "contradiction_followed": null,
+          "policy_refusal_followed": null,
+          "success": true
+        }
+      ]
+    },
+    {
+      "case_id": "REC-CORE-010",
+      "layer": "core",
+      "k": 1,
+      "successes": 1,
+      "pass_k": true,
+      "stage_match_rate": 1.0,
+      "avg_tool_score": 0.8,
+      "trials": [
+        {
+          "run": 0,
+          "case_id": "REC-CORE-010",
+          "layer": "core",
+          "stage": "CLOSED",
+          "expected_stage": "CLOSED",
+          "stage_match": true,
+          "task_completed": true,
+          "tool_score": 0.8,
+          "tool_calls": [
+            "query_receivable",
+            "diff_statement",
+            "query_policy",
+            "check_invoice",
+            "record_promise"
+          ],
+          "violations": 0,
+          "model_violations": [],
+          "contradiction_followed": null,
+          "policy_refusal_followed": null,
+          "success": true
+        }
+      ]
+    },
+    {
+      "case_id": "REC-CORE-011",
+      "layer": "core",
+      "k": 1,
+      "successes": 1,
+      "pass_k": true,
+      "stage_match_rate": 1.0,
+      "avg_tool_score": 0.8,
+      "trials": [
+        {
+          "run": 0,
+          "case_id": "REC-CORE-011",
+          "layer": "core",
+          "stage": "CLOSED",
+          "expected_stage": "CLOSED",
+          "stage_match": true,
+          "task_completed": true,
+          "tool_score": 0.8,
+          "tool_calls": [
+            "query_receivable",
+            "query_policy",
+            "check_invoice",
+            "record_promise",
+            "record_promise",
+            "record_promise"
+          ],
+          "violations": 0,
+          "model_violations": [],
+          "contradiction_followed": null,
+          "policy_refusal_followed": null,
+          "success": true
+        }
+      ]
+    },
+    {
+      "case_id": "REC-CORE-012",
+      "layer": "core",
+      "k": 1,
+      "successes": 1,
+      "pass_k": true,
+      "stage_match_rate": 1.0,
+      "avg_tool_score": 0.8,
+      "trials": [
+        {
+          "run": 0,
+          "case_id": "REC-CORE-012",
+          "layer": "core",
+          "stage": "CLOSED",
+          "expected_stage": "CLOSED",
+          "stage_match": true,
+          "task_completed": true,
+          "tool_score": 0.8,
+          "tool_calls": [
+            "query_receivable",
+            "diff_statement",
+            "query_policy",
+            "check_invoice",
+            "record_promise",
+            "record_promise",
+            "record_promise"
+          ],
+          "violations": 0,
+          "model_violations": [],
+          "contradiction_followed": null,
+          "policy_refusal_followed": null,
+          "success": true
+        }
+      ]
+    },
+    {
+      "case_id": "REC-CORE-013",
+      "layer": "core",
+      "k": 1,
+      "successes": 1,
+      "pass_k": true,
+      "stage_match_rate": 1.0,
+      "avg_tool_score": 0.8,
+      "trials": [
+        {
+          "run": 0,
+          "case_id": "REC-CORE-013",
+          "layer": "core",
+          "stage": "CLOSED",
+          "expected_stage": "CLOSED",
+          "stage_match": true,
+          "task_completed": true,
+          "tool_score": 0.8,
+          "tool_calls": [
+            "query_receivable",
+            "diff_statement",
+            "query_policy",
+            "check_invoice",
+            "record_promise",
+            "record_promise",
+            "record_promise"
+          ],
+          "violations": 0,
+          "model_violations": [],
+          "contradiction_followed": true,
+          "policy_refusal_followed": null,
+          "success": true
+        }
+      ]
+    },
+    {
+      "case_id": "REC-CORE-014",
+      "layer": "core",
+      "k": 1,
+      "successes": 1,
+      "pass_k": true,
+      "stage_match_rate": 1.0,
+      "avg_tool_score": 0.8,
+      "trials": [
+        {
+          "run": 0,
+          "case_id": "REC-CORE-014",
+          "layer": "core",
+          "stage": "CLOSED",
+          "expected_stage": "CLOSED",
+          "stage_match": true,
+          "task_completed": true,
+          "tool_score": 0.8,
+          "tool_calls": [
+            "query_receivable",
+            "query_policy",
+            "record_promise"
+          ],
+          "violations": 0,
+          "model_violations": [],
+          "contradiction_followed": null,
+          "policy_refusal_followed": null,
+          "success": true
+        }
+      ]
+    },
+    {
+      "case_id": "REC-CORE-015",
+      "layer": "core",
+      "k": 1,
+      "successes": 0,
+      "pass_k": false,
+      "stage_match_rate": 0.0,
+      "avg_tool_score": 0.6333,
+      "trials": [
+        {
+          "run": 0,
+          "case_id": "REC-CORE-015",
+          "layer": "core",
+          "stage": "CONFIRM",
+          "expected_stage": "CLOSED",
+          "stage_match": false,
+          "task_completed": false,
+          "tool_score": 0.6333,
+          "tool_calls": [
+            "query_receivable",
+            "query_policy",
+            "check_invoice"
+          ],
+          "violations": 0,
+          "model_violations": [],
+          "contradiction_followed": null,
+          "policy_refusal_followed": null,
+          "success": false
+        }
+      ]
+    },
+    {
+      "case_id": "REC-CORE-016",
+      "layer": "core",
+      "k": 1,
+      "successes": 1,
+      "pass_k": true,
+      "stage_match_rate": 1.0,
+      "avg_tool_score": 0.8,
+      "trials": [
+        {
+          "run": 0,
+          "case_id": "REC-CORE-016",
+          "layer": "core",
+          "stage": "CLOSED",
+          "expected_stage": "CLOSED",
+          "stage_match": true,
+          "task_completed": true,
+          "tool_score": 0.8,
+          "tool_calls": [
+            "query_receivable",
+            "query_policy",
+            "record_promise",
+            "record_promise",
+            "record_promise"
+          ],
+          "violations": 0,
+          "model_violations": [],
+          "contradiction_followed": null,
+          "policy_refusal_followed": null,
+          "success": true
+        }
+      ]
+    }
+  ]
+}

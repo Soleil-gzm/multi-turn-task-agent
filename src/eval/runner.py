@@ -49,6 +49,35 @@ _STALL = {
 }
 
 
+def _explicit_plan(case) -> str:
+    """给出明确日期 + 金额的确认话术。
+
+    真实模型按政策要求「客户明确到每期日期与金额」后才登记承诺，
+    「按你建议的方案」这类模糊确认无法触发 record_promise。
+    方案数值取自 case 初始金额，日期取政策内的固定窗口，保证可复现。
+    """
+    amount = case.init_state.get("amount")
+    if not isinstance(amount, int) or amount <= 0:
+        return "好的，就按你建议的方案，我同意，请直接登记付款承诺"
+    if case.subtype == "extension":
+        return f"那就延到 2026-10-01，一次性付清 {amount} 元，我同意，请登记"
+    if case.subtype == "waiver":
+        net = int(amount * 0.9)
+        third = net // 3
+        first = net - 2 * third
+        return (
+            f"那就减免 10% 后分 3 期：2026-10-15 付 {first} 元、"
+            f"2026-11-15 付 {third} 元、2026-12-15 付 {third} 元，"
+            f"合计 {net} 元，我同意，请登记"
+        )
+    third = amount // 3
+    first = amount - 2 * third
+    return (
+        f"那就分 3 期：2026-10-15 付 {first} 元、2026-11-15 付 {third} 元、"
+        f"2026-12-15 付 {third} 元，我同意，请直接登记"
+    )
+
+
 def build_user_messages(case) -> list[str]:
     """根据 case 的 persona / tags 构造模拟用户输入（规则化，无模型参与）。
 
@@ -64,20 +93,24 @@ def build_user_messages(case) -> list[str]:
         if case.subtype == "invoice_check":
             # 发票核查客户：身份核验后先问发票状态（触发 check_invoice），再进入协商
             base.append(f"发票 {case.init_state['invoice_no']} 开出来了吗？")
+        # 配合型客户明确否认金额争议：避免模型把对账单 mock 里的历史主张当成未决纠纷而拒绝登记
+        denial = "我没有提出金额异议，一律以系统账面为准。"
         if case.subtype == "waiver":
-            base.append("能减免一部分吗？")
+            base.append(denial + "能减免 10% 吗？")
         elif case.subtype == "extension":
-            base.append("我想延期 30 天")
+            base.append(denial + "我想延期 30 天，金额按系统账面为准")
         else:
-            base.append("我想分期 3 期")
-        base.append("好的，我同意")
+            base.append(denial + "我想分期 3 期，金额按系统账面为准")
+        base.append(_explicit_plan(case))
+        base.append("我确认上述方案，请现在登记付款承诺。")
         return base
 
     if case.subtype == "statement_diff":
         # 对账争议客户：核对差异后接受账面口径，给出政策内方案并确认，不无限拖延
         base.append("你们金额不对，我这边只有 20 万")
         base.append("那按你们账面金额来吧，我想分期 3 期")
-        base.append("好的，我同意")
+        base.append(_explicit_plan(case))
+        base.append("我确认上述方案，请现在登记付款承诺。")
         return base
 
     if "indirect_injection" in case.tags:
@@ -317,9 +350,12 @@ def main(
     k: int = 3,
     model: str | None = None,
     report_path: str | Path | None = None,
+    limit: int | None = None,
 ) -> dict[str, Any]:
     if k < 1:
         raise ValueError(f"k 必须 >= 1，实际为 {k}")
+    if limit is not None and limit < 1:
+        raise ValueError(f"limit 必须 >= 1，实际为 {limit}")
 
     load_env_file()
     path = Path(config_path) if config_path else default_scenario_path()
@@ -330,10 +366,13 @@ def main(
     agent = Agent(config, registry, llm)
 
     cases = load_cases(dataset_dir(config) / "cases.jsonl")
+    if limit is not None:
+        cases = cases[:limit]
     model_meta = llm.describe() if hasattr(llm, "describe") else {"model": model_spec}
     model_meta["_registered_tools"] = registry.names()
+    scope = f"{len(cases)} 条 case" + ("（冒烟子集）" if limit is not None else "")
     print(
-        f"场景: {config.scenario.display_name} · {len(cases)} 条 case · k={k} "
+        f"场景: {config.scenario.display_name} · {scope} · k={k} "
         f"· model={model_meta.get('model')}\n"
     )
 
@@ -410,5 +449,6 @@ if __name__ == "__main__":
         help="模型 spec：mock / openai_compat / module.factory（缺省读 MTA_LLM，否则 mock）",
     )
     parser.add_argument("--report", default=None, help="报告输出路径（缺省按模型名落盘）")
+    parser.add_argument("--limit", type=int, default=None, help="只跑前 N 条 case（真实模型冒烟用）")
     args = parser.parse_args()
-    main(args.config, k=args.k, model=args.model, report_path=args.report)
+    main(args.config, k=args.k, model=args.model, report_path=args.report, limit=args.limit)

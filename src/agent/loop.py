@@ -119,7 +119,8 @@ class Agent:
         return (
             f"你是{self.config.scenario.display_name}专员。"
             f"任务：{self.config.goal.success_criteria}。\n"
-            f"政策边界：分期≤{p.max_installments}期，延期≤{p.max_extension_days}天，"
+            f"政策边界：分期≤{p.max_installments}期（仅限制期数，不限制末期日期），"
+            f"延期≤{p.max_extension_days}天（最晚付款日为到期日后 {p.max_extension_days} 天），"
             f"减免≤{p.max_waiver_ratio:.0%}。\n"
             "禁止使用威胁性话术，不得编造未提供的单据数据。"
         )

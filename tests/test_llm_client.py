@@ -138,14 +138,13 @@ def test_get_llm_client_specs(monkeypatch):
     assert isinstance(get_llm_client(None), MockLLMClient)
     assert isinstance(get_llm_client("mock"), MockLLMClient)
 
+    # 显式 spec 优先于 MTA_LLM：CLI --model / 场景 demo.llm 不被 .env 覆盖
     monkeypatch.setenv("MTA_LLM", "mock")
-    assert isinstance(get_llm_client("openai_compat"), MockLLMClient)
-
     monkeypatch.setenv("MTA_LLM_BASE_URL", "https://example.test/v1")
     monkeypatch.setenv("MTA_LLM_API_KEY", "sk")
     monkeypatch.setenv("MTA_LLM_MODEL", "m")
-    monkeypatch.delenv("MTA_LLM", raising=False)
     assert isinstance(get_llm_client("openai_compat"), OpenAICompatibleClient)
+    assert isinstance(get_llm_client(None), MockLLMClient)  # 未显式指定时才读 MTA_LLM
 
 
 def test_mock_describe_is_link_check_only():

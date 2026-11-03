@@ -309,7 +309,8 @@ class OpenAICompatibleClient(LLMClient):
 def get_llm_client(spec: str | None = None) -> LLMClient:
     """获取 LLM 客户端。
 
-    spec 来源：环境变量 `MTA_LLM` 优先，其次场景 yaml 的 `demo.llm`。
+    显式传入的 spec（CLI `--model` / 场景 yaml 的 `demo.llm`）优先；
+    未显式指定时才读环境变量 `MTA_LLM`（便于 `.env` 配置默认模型）。
     支持：
       - 缺省 / `mock`：MockLLMClient
       - `openai_compat`（别名 `openai-compatible` / `openai`）：读取环境变量构造真实客户端
@@ -317,7 +318,7 @@ def get_llm_client(spec: str | None = None) -> LLMClient:
     框架侧不写死任何场景名。
     """
     load_env_file()
-    spec = os.environ.get("MTA_LLM") or spec
+    spec = spec or os.environ.get("MTA_LLM")
     if not spec or spec == "mock":
         return MockLLMClient()
     if spec in ("openai_compat", "openai-compatible", "openai"):

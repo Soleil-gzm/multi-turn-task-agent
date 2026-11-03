@@ -30,11 +30,12 @@
 - **G3 交互界面（已完成）**：Gradio 单页（对话 + 评测两个 Tab），`Agent.start/session.send` 会话级增量、Trace 面板与 JSON 导出、评测页读取 `v0_baseline.json` 渲染六项指标与 `k` / Pass^k；Gradio 6.31.0 已锁定，含构建与启动的端到端测试（见 [src/ui/app.py](../src/ui/app.py)、[gradio-reference.md](gradio-reference.md)）
 - **milktea 第二场景（已实现）**：`configs/scenarios/milktea.yaml` + `scenarios/milktea/`（3 个工具 + 演示 LLM）+ 通用运行器 `scripts/run_scenario.py`；实测 `INIT → GREET → IDENTIFY → OFFER → CONFIRM → CLOSED`，异常分支 `ESCALATED` 可触发，trace schema 与 receivables 一致。4 条硬标准全部通过（含 `grep src/` 零场景名，由单测固化）
 - **入口泛化（milktea 标准 2 收口）**：demo / ui / eval / retrieval / synthesis 改为配置发现（`default_scenario_path` / `dataset_dir`）与 `tools[].impl` 动态装配（`build_registry_from_config`）、LLM 工厂（`get_llm_client`）；`grep -R "milktea\|receivables" src/` 为 0，`python -m src.eval.runner` 退出码 0（工具覆盖 6/6）
-- **G2 真实模型接入 + k≥3 评测（代码已落地）**：`OpenAICompatibleClient`（OpenAI / DeepSeek / Qwen / vLLM 兼容，凭证走 `MTA_LLM_*`，缺配置 fail-fast）、Agent 工具调用消息协议修正（assistant `tool_calls` → `tool`）、runner 支持 `--k`（默认 3）、`Pass^k` / `Pass@1` 与 mean ± std；Mock k=3 报告 Pass^3 100%、240 次试验，真实模型基线待凭证实跑
+- **G2 真实模型接入 + k≥3 评测（已跑通）**：`OpenAICompatibleClient`（OpenAI / DeepSeek / Qwen / vLLM 兼容，凭证走 `MTA_LLM_*`，缺配置 fail-fast）、Agent 工具调用消息协议修正（assistant `tool_calls` → `tool`）、runner 支持 `--k`（默认 3）与 `--limit`（冒烟）、`Pass^k` / `Pass@1` 与 mean ± std；Mock k=3 报告 Pass^3 100%、240 次试验；真实模型 `deepseek-flash` k=1 core 16 条冒烟：终态匹配 81.2%、工具覆盖 6/6、矛盾告知 3/3（见 `eval/reports/v1_smoke_k1.json`）
 
 ### 进行中
 
-- 真实模型基线实跑：客户端与 k≥3 评测已就绪，但当前环境无模型凭证，`v1_real_k3` 报告尚未产出；拿到 key 后按 README「接入真实模型」执行即可
+- 真实模型正式基线（80 条 k=3）：`deepseek-flash` 已完成 core 16 条 k=1 冒烟（81.2% Pass@1），`eval/reports/v1_real_k3.json` 尚未产出；全量 80×3 次调用耗时较长，建议后台执行
+- 冒烟暴露的模型侧问题（非链路故障）：① 存在账实差异时倾向 `escalate` 而非按客户确认的账面金额登记；② 个别样本先 `query_policy` 后核身份，工具顺序违规。后续可在系统提示中强化「客户确认账面口径后继续办理」与工具调用顺序约束
 
 ### 契约状态（诚实反映代码进度，每个里程碑更新）
 

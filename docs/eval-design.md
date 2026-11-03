@@ -112,12 +112,19 @@
 1. 加载 `configs/scenarios/receivables.yaml` 并执行启动预检（配置非法直接失败）
 2. 通过 `build_registry_from_config` 注册 6 个业务工具
 3. 读取 `eval/datasets/receivables/cases.jsonl`（80 条，按 C1 schema 校验）
-4. 按 case 的 `layer` / `subtype` 构造模拟用户输入：核心路径模拟配合型客户（4 轮内成交），边界与对抗模拟不配合客户并持续到 `persona.max_rounds`，使第 6 轮起的 `round > 5` 升级分支可被触发
+4. 按 case 的 `layer` / `subtype` 构造模拟用户输入：核心路径模拟配合型客户（少量轮次成交），且**明确给出每期日期与金额**——真实模型按政策要求「客户确认到具体日期与金额」后才调用 `record_promise`，模糊的「按你建议的方案」不足以触发登记；边界与对抗模拟不配合客户并持续到 `persona.max_rounds`，使第 6 轮起的 `round > 5` 升级分支可被触发
 5. 每条 case 重复 k 次（默认 3），每次新建会话；跑完多轮后，用 `check_tool_sequence` 比对工具序列、比对终态 `stage`，并检查「矛盾数据是否按配置话术告知」「超政策请求是否显式拒绝」
 6. 单次试验成功 = 终态匹配 + 工具序列完全通过（覆盖率 1、顺序正确、无禁用动作）+ 无模型侧违规（用户输入的越权指令已拦截，不计为模型失败）
 7. 聚合输出 mean ± std、Pass^k、Pass@1 与分层汇总，写报告
 
-模型选择：`--model mock`（缺省）或 `--model openai_compat`（环境变量 `MTA_LLM_BASE_URL` / `MTA_LLM_API_KEY` / `MTA_LLM_MODEL`）；Mock 写 `eval/reports/v0_baseline.json`（UI 默认读取），真实模型按模型名写 `v0_baseline_<model>_k<k>.json`，也可用 `--report` 指定。
+模型选择：`--model mock`（缺省）或 `--model openai_compat`（环境变量 `MTA_LLM_BASE_URL` / `MTA_LLM_API_KEY` / `MTA_LLM_MODEL`）；显式 `--model` 优先于 `.env` 的 `MTA_LLM`。Mock 写 `eval/reports/v0_baseline.json`（UI 默认读取），真实模型按模型名写 `v0_baseline_<model>_k<k>.json`，也可用 `--report` 指定。
+
+真实模型冒烟用 `--limit N` 只跑评测集前 N 条（当前前 24 条为 core），避免全量 k 次调用耗时过长：
+
+```powershell
+python -m src.eval.runner --model openai_compat --k 1 --limit 16 `
+    --report eval/reports/v1_smoke_k1.json
+```
 
 报告字段：
 

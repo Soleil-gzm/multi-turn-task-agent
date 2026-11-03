@@ -356,6 +356,6 @@ trace 快照按轮深拷贝，已返回的 `TurnResult` 不会被后续轮次改
 | `MockLLMClient` | 离线演示、单测、评测链路验证 | 无；`describe()` 返回 `provider=mock` |
 | `OpenAICompatibleClient` | 真实模型（OpenAI / DeepSeek / Qwen / vLLM 等 `/chat/completions`） | 环境变量，缺必填项 fail-fast |
 
-环境变量：`MTA_LLM_BASE_URL`（或 `OPENAI_BASE_URL`）、`MTA_LLM_API_KEY`（或 `OPENAI_API_KEY`）、`MTA_LLM_MODEL` 为必填；`MTA_LLM_TEMPERATURE`（默认 0）、`MTA_LLM_TOP_P`（默认 1）、`MTA_LLM_SEED`、`MTA_LLM_TIMEOUT`、`MTA_LLM_MAX_TOKENS` 可选。仓库根目录的 `.env`（已在 `.gitignore` 中忽略，模板见 `.env.example`）会在入口调用时自动加载，且不覆盖已有进程环境变量；`MTA_LLM=openai_compat` 可让 demo / UI / eval 统一走真实模型，`--model openai_compat` 对单次命令生效。凭证只从环境读取，不写入 yaml 或报告（`describe()` 会剔除 key）。
+环境变量：`MTA_LLM_BASE_URL`（或 `OPENAI_BASE_URL`）、`MTA_LLM_API_KEY`（或 `OPENAI_API_KEY`）、`MTA_LLM_MODEL` 为必填；`MTA_LLM_TEMPERATURE`（默认 0）、`MTA_LLM_TOP_P`（默认 1）、`MTA_LLM_SEED`、`MTA_LLM_TIMEOUT`、`MTA_LLM_MAX_TOKENS` 可选。仓库根目录的 `.env`（已在 `.gitignore` 中忽略，模板见 `.env.example`）会在入口调用时自动加载，且不覆盖已有进程环境变量；`MTA_LLM=openai_compat` 可让 demo / UI / eval 默认走真实模型；显式 `--model` / 场景 `demo.llm` **优先于** `MTA_LLM`（单次命令或场景可临时覆盖），仅未指定时才读环境变量。测试通过 `tests/conftest.py` 强制 `MTA_LLM=mock`，避免本地 `.env` 触发真实调用。凭证只从环境读取，不写入 yaml 或报告（`describe()` 会剔除 key）。
 
 协议约束：工具调用轮次的消息顺序必须是 `assistant(tool_calls)` → `tool(tool_call_id=...)`，否则 OpenAI 兼容接口会拒绝 `role=tool`。`loop.py` 在工具结果前写入带 `tool_calls` 的 assistant 消息，并在回复被矛盾告知 / 拒绝话术覆盖时追加一条 assistant 消息，保证历史与用户实际看到的一致（有单测覆盖）。

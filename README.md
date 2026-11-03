@@ -132,10 +132,13 @@ MTA_LLM_MODEL=deepseek-chat
 
 ```powershell
 python -m src.agent.demo                                    # 自动读取 .env
-python -m src.eval.runner --k 1 --model openai_compat       # 先冒烟 1 次
+python -m src.eval.runner --model openai_compat --k 1 `
+    --limit 16 --report eval/reports/v1_smoke_k1.json        # 先冒烟 core 16 条
 python -m src.eval.runner --model openai_compat --k 3 `
-    --report eval/reports/v1_real_k3.json                    # 正式 k=3
+    --report eval/reports/v1_real_k3.json                    # 正式 k=3（80 条）
 ```
+
+显式 `--model` 优先于 `.env` 的 `MTA_LLM`：临时跑 Mock 不会被本地 `.env` 覆盖。
 
 可选参数：`MTA_LLM_TEMPERATURE`（默认 0）、`MTA_LLM_TOP_P`（默认 1）、`MTA_LLM_SEED`、`MTA_LLM_TIMEOUT`（默认 60）、`MTA_LLM_MAX_TOKENS`。配置缺失时客户端 fail-fast（报缺失的变量名），不会静默回落到 Mock。
 
@@ -170,6 +173,21 @@ python -m src.eval.runner --model openai_compat --k 3 `
 | 幻觉率 | 未采集 | 需真实模型 |
 
 完整结果见 `eval/reports/v0_baseline.json`（含分层指标与逐条明细）。
+
+### 真实模型冒烟（v1，k=1）
+
+`deepseek-flash`（`https://api.deepseek.com`，temperature=0）跑 core 前 16 条，仅用于验证真实链路，样本量不足以作为正式基线：
+
+| 指标 | 结果 | 说明 |
+| --- | --- | --- |
+| 终态匹配率 | 81.2%（13/16） | 未通过 3 条：2 条停在 `CONFIRM`/`NEGOTIATE`（模型改用 `escalate` 或未登记），1 条 `record_promise` 早于 `query_policy`（顺序违规） |
+| 任务完成率 | 81.2% | 终态为 `CLOSED` 的试验占比 |
+| 工具序列均分 | 0.77 | 覆盖率 × 0.5 + 顺序 × 0.3 |
+| Pass^1 | 81.2% | 单次试验成功率 |
+| 矛盾数据告知率 | 100%（3/3） | 仅统计触发 `diff_statement` 且账实不符的试验 |
+| 工具覆盖 | 6/6 | `escalate` 2 次、`record_promise` 14 次被触达 |
+
+完整结果见 `eval/reports/v1_smoke_k1.json`。观察到的模型侧问题：面对账实差异时会主动 `escalate` 而非按客户确认的账面金额登记；个别样本先查政策后核身份导致工具顺序违规。这两类属于「模型行为」而非链路故障，正式 k=3 基线（80 条）需按上方命令产出。
 
 ## 文档导航
 

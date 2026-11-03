@@ -276,6 +276,7 @@
           "tool_calls": [
             "query_receivable",
             "query_policy",
+            "query_policy",
             "record_promise"
           ],
           "violations": 0,
@@ -296,6 +297,7 @@
           "tool_calls": [
             "query_receivable",
             "query_policy",
+            "query_policy",
             "record_promise"
           ],
           "violations": 0,
@@ -315,6 +317,7 @@
           "tool_score": 0.8,
           "tool_calls": [
             "query_receivable",
+            "query_policy",
             "query_policy",
             "record_promise"
           ],
@@ -560,6 +563,7 @@
           "tool_calls": [
             "query_receivable",
             "query_policy",
+            "query_policy",
             "record_promise"
           ],
           "violations": 0,
@@ -580,6 +584,7 @@
           "tool_calls": [
             "query_receivable",
             "query_policy",
+            "query_policy",
             "record_promise"
           ],
           "violations": 0,
@@ -599,6 +604,7 @@
           "tool_score": 0.8,
           "tool_calls": [
             "query_receivable",
+            "query_policy",
             "query_policy",
             "record_promise"
           ],
@@ -844,6 +850,7 @@
           "tool_calls": [
             "query_receivable",
             "query_policy",
+            "query_policy",
             "record_promise"
           ],
           "violations": 0,
@@ -864,6 +871,7 @@
           "tool_calls": [
             "query_receivable",
             "query_policy",
+            "query_policy",
             "record_promise"
           ],
           "violations": 0,
@@ -883,6 +891,7 @@
           "tool_score": 0.8,
           "tool_calls": [
             "query_receivable",
+            "query_policy",
             "query_policy",
             "record_promise"
           ],
@@ -1128,6 +1137,7 @@
           "tool_calls": [
             "query_receivable",
             "query_policy",
+            "query_policy",
             "record_promise"
           ],
           "violations": 0,
@@ -1148,6 +1158,7 @@
           "tool_calls": [
             "query_receivable",
             "query_policy",
+            "query_policy",
             "record_promise"
           ],
           "violations": 0,
@@ -1167,6 +1178,7 @@
           "tool_score": 0.8,
           "tool_calls": [
             "query_receivable",
+            "query_policy",
             "query_policy",
             "record_promise"
           ],
@@ -1412,6 +1424,7 @@
           "tool_calls": [
             "query_receivable",
             "query_policy",
+            "query_policy",
             "record_promise"
           ],
           "violations": 0,
@@ -1432,6 +1445,7 @@
           "tool_calls": [
             "query_receivable",
             "query_policy",
+            "query_policy",
             "record_promise"
           ],
           "violations": 0,
@@ -1451,6 +1465,7 @@
           "tool_score": 0.8,
           "tool_calls": [
             "query_receivable",
+            "query_policy",
             "query_policy",
             "record_promise"
           ],
