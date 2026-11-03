@@ -291,14 +291,29 @@ class AgentSession:
         )
 
         reply = llm_resp.get("content") or ""
+        tool_calls = llm_resp.get("tool_calls") or []
+
+        # 真实模型协议：工具结果之前必须有一条带 tool_calls 的 assistant 消息，
+        # 否则 OpenAI 兼容接口会拒绝后续 role=tool 的消息。
+        if tool_calls:
+            self.messages.append(
+                {
+                    "role": "assistant",
+                    "content": llm_resp.get("content"),
+                    "tool_calls": tool_calls,
+                }
+            )
 
         # 工具调用
-        for tc in llm_resp.get("tool_calls") or []:
-            fn = tc["function"]
-            name = fn["name"]
+        for index, tc in enumerate(tool_calls):
+            fn = tc.get("function") or {}
+            name = fn.get("name") or "unknown_tool"
+            call_id = tc.get("id") or f"call_{index}"
             try:
-                args = json.loads(fn["arguments"]) if fn["arguments"] else {}
-            except json.JSONDecodeError:
+                args = json.loads(fn["arguments"]) if fn.get("arguments") else {}
+            except (json.JSONDecodeError, TypeError):
+                args = {}
+            if not isinstance(args, dict):
                 args = {}
 
             self.tool_names_called.append(name)
@@ -335,7 +350,7 @@ class AgentSession:
 
             # 工具返回隔离（间接注入防护）
             safe_data = sanitize_tool_output(result.get("data"))
-            self.messages.append({"role": "tool", "tool_call_id": tc["id"], "content": safe_data})
+            self.messages.append({"role": "tool", "tool_call_id": call_id, "content": safe_data})
 
             if name == "record_promise" and result.get("ok"):
                 reply = "好的，已为您记录付款承诺。"
@@ -401,7 +416,14 @@ class AgentSession:
             )
             self.violations.extend(out_check["violations"])
 
-        self.messages.append({"role": "assistant", "content": reply})
+        # 自然语言回复入历史：无工具调用时回复即本轮 assistant 消息；
+        # 有工具调用时，若最终话术与模型原始 content 不同（矛盾告知 / 拒绝 / 记录成功），
+        # 追加一条 assistant 消息，保证下一轮上下文与用户实际看到的一致。
+        if not tool_calls:
+            self.messages.append({"role": "assistant", "content": reply})
+        elif reply and reply != (llm_resp.get("content") or ""):
+            self.messages.append({"role": "assistant", "content": reply})
+
         self.replies.append(reply)
         self.last_reply = reply
 

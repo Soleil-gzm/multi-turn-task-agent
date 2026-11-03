@@ -1,4 +1,4 @@
-# Roadmap
+﻿# Roadmap
 
 > [返回主页](../README.md) · [架构设计](architecture.md) · [场景设计](scenario-design.md) · [评测设计](eval-design.md)
 
@@ -12,7 +12,7 @@
 - 评测体系设计定稿：[评测设计](eval-design.md)
 - 数据集选型定案（三集分工）与工程契约规范：[方案评审与细化](方案评审与细化.md)
 - 文档骨架与公开边界划分
-- **W1 Walking Skeleton（已跑通）**：`make demo` 走完一次多轮并落 trace，终态 `CLOSED`、任务完成；`make test` 142 passed；`make eval` 产出 v0 报告
+- **W1 Walking Skeleton（已跑通）**：`make demo` 走完一次多轮并落 trace，终态 `CLOSED`、任务完成；`make test` 160 passed；`make eval` 产出 v0 报告
 - **框架主干**：配置驱动 + 元组状态机（12 条转移、`NEGOTIATE` 4 个子状态）+ 工具注册表 + trace + 启动预检
 - **工具层**：6 个业务工具（mock 数据）全部注册，含可返回矛盾数据的 `diff_statement`
 - **状态机测试**：12 条转移逐条单测（含两条 `or` 条件分支）
@@ -21,19 +21,20 @@
 - **评测路径对齐**：Mock 路由补齐「延期 / 对账争议」关键词，`statement_diff` 模拟用户在核对后按账面口径收敛、不再以拖延触发升级；80 条终态匹配 87.5% → 100%（Mock 链路验证，不代表模型能力）
 - **评测集扩量**：80 条（24 core / 16 boundary / 40 adversarial），由 `src/synthesis/rule_based.py` 确定性生成、带真实 `content_hash`；对抗含 8 条 injection（其中 2 条间接注入）
 - **升级留痕**：`escalate_to` + `escalate_tool` 配置驱动，进入升级状态自动调用 `escalate`（带合同号与触发条件），oracle 对 ESCALATED 期望该工具
-- **矛盾数据告知**：`response.contradiction` 声明工具 / 字段 / 话术，循环内检测到两字段不一致即主动告知；评测新增「矛盾数据告知率」（当前 100%，6/6）
-- **超政策拒绝话术**：`response.policy_refusal` 声明抽取正则 / 对应 policy 字段 / 拒绝模板，超限时显式拒绝并给政策内替代；评测新增「超政策拒绝话术率」（当前 100%，10/10），重复超限计入 `policy_violation_attempt` 触发升级
+- **矛盾数据告知**：`response.contradiction` 声明工具 / 字段 / 话术，循环内检测到两字段不一致即主动告知；评测新增「矛盾数据告知率」（k=3 池化当前 100%，18/18）
+- **超政策拒绝话术**：`response.policy_refusal` 声明抽取正则 / 对应 policy 字段 / 拒绝模板，超限时显式拒绝并给政策内替代；评测新增「超政策拒绝话术率」（k=3 池化当前 100%，30/30），重复超限计入 `policy_violation_attempt` 触发升级
 - **评测链路**：80 条 case 可加载、可评测、可出分层报告
-- **W2 数据层**：话术表（39 条，YAML 唯一真源 + `make templates` 生成 xlsx，占位符三方一致校验入测试）+ policy 知识库（24 条片段：公开法规要点 + 虚构内部政策，BM25 检索已接入 `query_policy`）；142 个单测全绿
+- **W2 数据层**：话术表（39 条，YAML 唯一真源 + `make templates` 生成 xlsx，占位符三方一致校验入测试）+ policy 知识库（24 条片段：公开法规要点 + 虚构内部政策，BM25 检索已接入 `query_policy`）；160 个单测全绿
 - **W0 prior-art 对照**：[prior-art.md](prior-art.md)——三份参照（RiSAWOZ / ABCD / τ-bench）职责边界 + 14 条逐项对照清单（7 条 ✅ 已对齐、6 条 ⬜ 待核对带行动项、1 条不适用），含指标可比性边界声明与许可声明
 - **人工抽检 20 条**：20/20 通过（D1 20/20、D2 20/20、D3 18/18、D4 20/20）；P-01 ~ P-05 全部修复——P-05 通过 core 新增 `invoice_check` 子类型（4 条）+ Mock 发票路由补齐，报告新增「工具覆盖 6/6」维度防空转工具（见 [抽检记录](../eval/reports/manual_review_20.md)）
-- **G3 交互界面（已完成）**：Gradio 单页（对话 + 评测两个 Tab），`Agent.start/session.send` 会话级增量、Trace 面板与 JSON 导出、评测页读取 `v0_baseline.json` 渲染六项指标；Gradio 6.31.0 已锁定，含构建与启动的端到端测试（见 [src/ui/app.py](../src/ui/app.py)、[gradio-reference.md](gradio-reference.md)）
+- **G3 交互界面（已完成）**：Gradio 单页（对话 + 评测两个 Tab），`Agent.start/session.send` 会话级增量、Trace 面板与 JSON 导出、评测页读取 `v0_baseline.json` 渲染六项指标与 `k` / Pass^k；Gradio 6.31.0 已锁定，含构建与启动的端到端测试（见 [src/ui/app.py](../src/ui/app.py)、[gradio-reference.md](gradio-reference.md)）
 - **milktea 第二场景（已实现）**：`configs/scenarios/milktea.yaml` + `scenarios/milktea/`（3 个工具 + 演示 LLM）+ 通用运行器 `scripts/run_scenario.py`；实测 `INIT → GREET → IDENTIFY → OFFER → CONFIRM → CLOSED`，异常分支 `ESCALATED` 可触发，trace schema 与 receivables 一致。4 条硬标准全部通过（含 `grep src/` 零场景名，由单测固化）
 - **入口泛化（milktea 标准 2 收口）**：demo / ui / eval / retrieval / synthesis 改为配置发现（`default_scenario_path` / `dataset_dir`）与 `tools[].impl` 动态装配（`build_registry_from_config`）、LLM 工厂（`get_llm_client`）；`grep -R "milktea\|receivables" src/` 为 0，`python -m src.eval.runner` 退出码 0（工具覆盖 6/6）
+- **G2 真实模型接入 + k≥3 评测（代码已落地）**：`OpenAICompatibleClient`（OpenAI / DeepSeek / Qwen / vLLM 兼容，凭证走 `MTA_LLM_*`，缺配置 fail-fast）、Agent 工具调用消息协议修正（assistant `tool_calls` → `tool`）、runner 支持 `--k`（默认 3）、`Pass^k` / `Pass@1` 与 mean ± std；Mock k=3 报告 Pass^3 100%、240 次试验，真实模型基线待凭证实跑
 
 ### 进行中
 
-- 真实模型接入：当前 LLM 为 `MockLLMClient`，评测数字只验证链路，不代表模型能力
+- 真实模型基线实跑：客户端与 k≥3 评测已就绪，但当前环境无模型凭证，`v1_real_k3` 报告尚未产出；拿到 key 后按 README「接入真实模型」执行即可
 
 ### 契约状态（诚实反映代码进度，每个里程碑更新）
 
@@ -59,7 +60,7 @@
 | 场景数据层 | receivables 话术表 + 50–80 条案例（规则化生成，含 oracle）+ policy 知识库 | 占位符三方一致校验通过 | 已完成（80 条 case 含 oracle 与 content_hash；39 条话术表 + 24 条知识库片段，占位符三方一致校验入测试） |
 | 状态机与工具层 | 12 条转移 + 6 个业务工具（mock 单据） | 每条转移 1 个单测 | 已完成（12 条转移逐条单测，6 工具已实现） |
 | 服务化 | FastAPI `/chat` + SQLite + `docker compose up` | 换机器一条命令起来 | 未开始 |
-| 评测落地 | 规则评测器 + 50–80 条评测集 + v0 基线报告 + 人工抽检 20 条 + 对抗 40 条（含 ≥2 条间接注入） | `make eval` 一条命令出报告 | 部分完成（评测器与报告链路已通；评测集 80 条含对抗 40 条与 2 条间接注入；当前 v0 为 Mock：终态匹配 100.0%、完成率 35.0%、工具均分 0.80、矛盾告知率 100%（6/6）、超政策拒绝话术率 100%（10/10）；人工抽检 20 条 20/20 通过） |
+| 评测落地 | 规则评测器 + 50–80 条评测集 + v0 基线报告 + 人工抽检 20 条 + 对抗 40 条（含 ≥2 条间接注入） | `make eval` 一条命令出报告 | 部分完成（评测器与报告链路已通；评测集 80 条含对抗 40 条与 2 条间接注入；runner 支持 k 次重复与 Pass^k；当前 v0 为 Mock k=3：终态匹配 100.0% ± 0.0%、完成率 35.0% ± 0.0%、工具均分 0.80、Pass^3 100%（80/80）、矛盾告知率 100%（18/18）、超政策拒绝话术率 100%（30/30）；人工抽检 20 条 20/20 通过；真实模型基线待凭证） |
 | 文档 | prior-art 对照（只读，不接入数据） | 对照清单可逐项勾选 | 已完成（[prior-art.md](prior-art.md)：7 条已对齐 / 6 条待核对 / 1 条不适用） |
 
 > MVP 的判定标准是「完整可讲」：有框架、有业务场景、有评测数字、有服务化入口。**先保证闭环，再叠加亮点。**

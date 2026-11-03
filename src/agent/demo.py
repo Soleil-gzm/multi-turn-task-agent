@@ -28,6 +28,11 @@ from src.tools.registry import build_registry_from_config
 def main() -> None:
     parser = argparse.ArgumentParser(description="多轮对话演示（任意场景）")
     parser.add_argument("--config", default=None, help="scenario.yaml 路径，缺省自动发现")
+    parser.add_argument(
+        "--model",
+        default=None,
+        help="模型 spec：mock / openai_compat / module.factory（缺省读 MTA_LLM / yaml demo.llm）",
+    )
     args = parser.parse_args()
 
     config_path = Path(args.config) if args.config else default_scenario_path()
@@ -42,7 +47,7 @@ def main() -> None:
     print(registry.names())
 
     print("[3/5] 初始化 Agent")
-    agent = Agent(config, registry, get_llm_client(demo.get("llm")))
+    agent = Agent(config, registry, get_llm_client(args.model or demo.get("llm")))
 
     messages = demo.get("messages") or ["你好"]
     print("[4/5] 运行多轮对话（happy path）")

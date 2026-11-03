@@ -1,0 +1,489 @@
+{
+  "trace_id": "tr_47ca8fc49308",
+  "session_id": "s_8ec6e2473fc2",
+  "case_id": null,
+  "model": {},
+  "steps": [
+    {
+      "step": 1,
+      "type": "llm_call",
+      "latency_ms": 50,
+      "input_tokens": 495,
+      "output_tokens": 721,
+      "output": {
+        "content": "我来先查询该合同的应收账款情况与协商政策边界。",
+        "tool_calls": [
+          {
+            "index": 0,
+            "id": "call_00_UtIpXFNPRg8xPhzHRLpV6103",
+            "type": "function",
+            "function": {
+              "name": "query_receivable",
+              "arguments": "{\"contract_no\": \"HT-Y2026-012\"}"
+            }
+          },
+          {
+            "index": 1,
+            "id": "call_01_sSkkaWHpn8AHXvk3xEpz0723",
+            "type": "function",
+            "function": {
+              "name": "query_policy",
+              "arguments": "{}"
+            }
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 833,
+          "completion_tokens": 106,
+          "total_tokens": 939,
+          "prompt_tokens_details": {
+            "cached_tokens": 640
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 36
+          },
+          "prompt_cache_hit_tokens": 640,
+          "prompt_cache_miss_tokens": 193
+        }
+      },
+      "tool": null,
+      "args": null,
+      "result": null,
+      "degraded": false,
+      "state_before": null,
+      "state_after": null,
+      "rule": null,
+      "detail": null
+    },
+    {
+      "step": 2,
+      "type": "tool_call",
+      "latency_ms": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "output": null,
+      "tool": "query_receivable",
+      "args": {
+        "contract_no": "HT-Y2026-012"
+      },
+      "result": {
+        "ok": true,
+        "data": {
+          "contract_no": "HT-Y2026-012",
+          "invoice_no": "INV-20260123",
+          "amount": 380000,
+          "due_date": "2026-08-15",
+          "overdue_days": 45,
+          "status": "unpaid"
+        },
+        "error": null,
+        "meta": {
+          "source": "mock_db",
+          "latency_ms": 0
+        }
+      },
+      "degraded": false,
+      "state_before": null,
+      "state_after": null,
+      "rule": null,
+      "detail": null
+    },
+    {
+      "step": 3,
+      "type": "tool_call",
+      "latency_ms": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "output": null,
+      "tool": "query_policy",
+      "args": {},
+      "result": {
+        "ok": true,
+        "data": {
+          "max_installments": 3,
+          "max_extension_days": 30,
+          "max_waiver_ratio": 0.1,
+          "forbidden_patterns": [
+            "威胁",
+            "起诉你",
+            "冻结账户",
+            "保证一定"
+          ]
+        },
+        "error": null,
+        "meta": {
+          "source": "policy_doc",
+          "latency_ms": 0
+        }
+      },
+      "degraded": false,
+      "state_before": null,
+      "state_after": null,
+      "rule": null,
+      "detail": null
+    },
+    {
+      "step": 4,
+      "type": "state_transition",
+      "latency_ms": 1,
+      "input_tokens": null,
+      "output_tokens": null,
+      "output": null,
+      "tool": null,
+      "args": null,
+      "result": null,
+      "degraded": false,
+      "state_before": "INIT",
+      "state_after": "IDENTIFY",
+      "rule": null,
+      "detail": null
+    },
+    {
+      "step": 5,
+      "type": "state_transition",
+      "latency_ms": 1,
+      "input_tokens": null,
+      "output_tokens": null,
+      "output": null,
+      "tool": null,
+      "args": null,
+      "result": null,
+      "degraded": false,
+      "state_before": "IDENTIFY",
+      "state_after": "NEGOTIATE/probe",
+      "rule": null,
+      "detail": null
+    },
+    {
+      "step": 6,
+      "type": "state_transition",
+      "latency_ms": 1,
+      "input_tokens": null,
+      "output_tokens": null,
+      "output": null,
+      "tool": null,
+      "args": null,
+      "result": null,
+      "degraded": false,
+      "state_before": "NEGOTIATE/probe",
+      "state_after": "NEGOTIATE/propose",
+      "rule": null,
+      "detail": null
+    },
+    {
+      "step": 7,
+      "type": "llm_call",
+      "latency_ms": 50,
+      "input_tokens": 1608,
+      "output_tokens": 802,
+      "output": {
+        "content": "我先交叉核验发票状态和账面差异，以免后续协商建立在错误数据上。",
+        "tool_calls": [
+          {
+            "index": 0,
+            "id": "call_00_EOa6zv45yAeqdtr83tp19599",
+            "type": "function",
+            "function": {
+              "name": "check_invoice",
+              "arguments": "{\"invoice_no\": \"INV-20260123\"}"
+            }
+          },
+          {
+            "index": 1,
+            "id": "call_01_pdDYX4UKQJAC4NpaiX3d5352",
+            "type": "function",
+            "function": {
+              "name": "diff_statement",
+              "arguments": "{\"contract_no\": \"HT-Y2026-012\"}"
+            }
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 1052,
+          "completion_tokens": 128,
+          "total_tokens": 1180,
+          "prompt_tokens_details": {
+            "cached_tokens": 768
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 31
+          },
+          "prompt_cache_hit_tokens": 768,
+          "prompt_cache_miss_tokens": 284
+        }
+      },
+      "tool": null,
+      "args": null,
+      "result": null,
+      "degraded": false,
+      "state_before": null,
+      "state_after": null,
+      "rule": null,
+      "detail": null
+    },
+    {
+      "step": 8,
+      "type": "tool_call",
+      "latency_ms": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "output": null,
+      "tool": "check_invoice",
+      "args": {
+        "invoice_no": "INV-20260123"
+      },
+      "result": {
+        "ok": true,
+        "data": {
+          "invoice_no": "INV-20260123",
+          "contract_no": "HT-Y2026-012",
+          "status": "已开",
+          "amount": 380000,
+          "issued_date": "2026-08-03"
+        },
+        "error": null,
+        "meta": {
+          "source": "mock_invoice_db",
+          "latency_ms": 0
+        }
+      },
+      "degraded": false,
+      "state_before": null,
+      "state_after": null,
+      "rule": null,
+      "detail": null
+    },
+    {
+      "step": 9,
+      "type": "tool_call",
+      "latency_ms": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "output": null,
+      "tool": "diff_statement",
+      "args": {
+        "contract_no": "HT-Y2026-012"
+      },
+      "result": {
+        "ok": true,
+        "data": {
+          "contract_no": "HT-Y2026-012",
+          "book_amount": 380000,
+          "customer_claimed_amount": 200000,
+          "diff": 180000,
+          "has_diff": true,
+          "customer_note": "客户主张 8 月已支付 18 万，系统未入账"
+        },
+        "error": null,
+        "meta": {
+          "source": "mock_statement",
+          "latency_ms": 0
+        }
+      },
+      "degraded": false,
+      "state_before": null,
+      "state_after": null,
+      "rule": null,
+      "detail": null
+    },
+    {
+      "step": 10,
+      "type": "llm_call",
+      "latency_ms": 50,
+      "input_tokens": 3088,
+      "output_tokens": 1481,
+      "output": {
+        "content": "您说的「10」我需要确认指哪一项，避免记错：\n\n1. **金额**：是指您方已付 10 万元（而非 20 万元）吗？\n2. **分期期数**：您想分 10 期？（政策上限 3 期，10 期超出边界，我无法受理）\n3. **日期**：是指 10 号付款？\n\n另外说明两点：\n- 无论哪种主张，系统账面是 **380,000 元**，与您方的说法存在差额。**账面金额我无权修改**，需以您提供的付款凭证核对后由人工账务处理。\n- 您方便的话请提供付款凭证号或银行流水日期，我据此提交核账。\n\n请先明确「10」的含义，我再继续。",
+        "tool_calls": null,
+        "usage": {
+          "prompt_tokens": 1342,
+          "completion_tokens": 579,
+          "total_tokens": 1921,
+          "prompt_tokens_details": {
+            "cached_tokens": 1024
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 411
+          },
+          "prompt_cache_hit_tokens": 1024,
+          "prompt_cache_miss_tokens": 318
+        }
+      },
+      "tool": null,
+      "args": null,
+      "result": null,
+      "degraded": false,
+      "state_before": null,
+      "state_after": null,
+      "rule": null,
+      "detail": null
+    },
+    {
+      "step": 11,
+      "type": "llm_call",
+      "latency_ms": 50,
+      "input_tokens": 4401,
+      "output_tokens": 1512,
+      "output": {
+        "content": "",
+        "tool_calls": [
+          {
+            "index": 0,
+            "id": "call_00_te1eg5H7p3jORuEJPD1C8831",
+            "type": "function",
+            "function": {
+              "name": "escalate",
+              "arguments": "{\"contract_no\": \"HT-Y2026-012\", \"reason\": \"账实不符且客户主张前后矛盾，需人工核账。系统账面 380,000 元、账期 2026-08-15、逾期 45 天未收;发票 INV-20260123(380,000 元)已于 2026-08-03 开出、状态「已开」。对账差异显示客户先主张「8 月已付 18 万、余额 20 万」,随后改称「已付 10 元」,两次主张差距巨大且与账面差额 180,000 元不符,客户未提供任何付款凭证或流水。同次协商中客户对「10」的含义(金额/期数/日期)亦未澄清。请账务核对该合同款项到账情况,并确认后续催收口径。\"}"
+            }
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 1520,
+          "completion_tokens": 454,
+          "total_tokens": 1974,
+          "prompt_tokens_details": {
+            "cached_tokens": 1280
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 223
+          },
+          "prompt_cache_hit_tokens": 1280,
+          "prompt_cache_miss_tokens": 240
+        }
+      },
+      "tool": null,
+      "args": null,
+      "result": null,
+      "degraded": false,
+      "state_before": null,
+      "state_after": null,
+      "rule": null,
+      "detail": null
+    },
+    {
+      "step": 12,
+      "type": "tool_call",
+      "latency_ms": 0,
+      "input_tokens": null,
+      "output_tokens": null,
+      "output": null,
+      "tool": "escalate",
+      "args": {
+        "contract_no": "HT-Y2026-012",
+        "reason": "账实不符且客户主张前后矛盾，需人工核账。系统账面 380,000 元、账期 2026-08-15、逾期 45 天未收;发票 INV-20260123(380,000 元)已于 2026-08-03 开出、状态「已开」。对账差异显示客户先主张「8 月已付 18 万、余额 20 万」,随后改称「已付 10 元」,两次主张差距巨大且与账面差额 180,000 元不符,客户未提供任何付款凭证或流水。同次协商中客户对「10」的含义(金额/期数/日期)亦未澄清。请账务核对该合同款项到账情况,并确认后续催收口径。"
+      },
+      "result": {
+        "ok": true,
+        "data": {
+          "ticket_id": "ESC-0001",
+          "contract_no": "HT-Y2026-012",
+          "reason": "账实不符且客户主张前后矛盾，需人工核账。系统账面 380,000 元、账期 2026-08-15、逾期 45 天未收;发票 INV-20260123(380,000 元)已于 2026-08-03 开出、状态「已开」。对账差异显示客户先主张「8 月已付 18 万、余额 20 万」,随后改称「已付 10 元」,两次主张差距巨大且与账面差额 180,000 元不符,客户未提供任何付款凭证或流水。同次协商中客户对「10」的含义(金额/期数/日期)亦未澄清。请账务核对该合同款项到账情况,并确认后续催收口径。",
+          "status": "created"
+        },
+        "error": null,
+        "meta": {
+          "source": "escalation_queue",
+          "latency_ms": 0
+        }
+      },
+      "degraded": false,
+      "state_before": null,
+      "state_after": null,
+      "rule": null,
+      "detail": null
+    },
+    {
+      "step": 13,
+      "type": "llm_call",
+      "latency_ms": 50,
+      "input_tokens": 6989,
+      "output_tokens": 1829,
+      "output": {
+        "content": "系统里没有查到这笔记录：账面应收仍是 **380,000 元**，没有显示 10 元的到账。我已提交人工核账工单 **ESC-0001**，由账务确认到账明细。\n\n接下来两件事请您配合：\n\n**1）如确有付款**：请提供凭证（银行回单日期、流水号或付款户名），我据此并入核账。\n\n**2）回到付款安排**：这一项需要您给出**明确日期 + 金额**。可按政策给到的空间如下：\n- 分期：最多 3 期\n- 延期：最长 30 天\n- 减免：最多 10%（即最高 38,000 元，需另行审批）\n\n请按以下格式回复，我直接登记：\n> 首付 ___ 元，于 2026-__-__ 前支付；余款 ___ 元，于 2026-__-__ 前付清。\n\n如您对账面金额有异议，也请一并说明依据，我转核账处理，不在此环节调整账面数。",
+        "tool_calls": null,
+        "usage": {
+          "prompt_tokens": 1979,
+          "completion_tokens": 445,
+          "total_tokens": 2424,
+          "prompt_tokens_details": {
+            "cached_tokens": 1408
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 214
+          },
+          "prompt_cache_hit_tokens": 1408,
+          "prompt_cache_miss_tokens": 571
+        }
+      },
+      "tool": null,
+      "args": null,
+      "result": null,
+      "degraded": false,
+      "state_before": null,
+      "state_after": null,
+      "rule": null,
+      "detail": null
+    },
+    {
+      "step": 14,
+      "type": "llm_call",
+      "latency_ms": 50,
+      "input_tokens": 8737,
+      "output_tokens": 2770,
+      "output": {
+        "content": "这个方案我无法登记，有三处不可行：\n\n**1）金额不闭合**：10 元加 20,000 元，合计 **20,010 元**，与账面 **380,000 元** 相差 359,990 元。承诺金额小于账面就算作已清偿，会直接造成账务缺口，我不能这样记录。\n\n**2）日期超期**：合同账期为 2026-08-15，延期上限 30 天，可接受的最晚付款日到 **2026-10-29**。您提出的 2026-11-03 已超出政策边界。\n\n**3）余款日期空缺**：「2026--」未填写完整，无确定日期的承诺不具有可执行性，也无法登记。\n\n**请您在此基础上重拟，示例格式：**\n> 首付 ______ 元，于 2026-__-__ 前支付（不晚于 2026-10-29）；第二期 ______ 元，于 2026-__-__ 前支付；余款 ______ 元，于 2026-__-__ 前付清。三期合计 380,000 元。\n\n可用的政策空间：**最多分 3 期、最晚不超过 2026-10-29、减免最高 10%（38,000 元，需审批）**。若做满减免，合计应付 342,000 元即可结清。\n\n另有两处仍待您确认，请一并回复：\n- 您主张的「10 元已付」需提供银行回单或流水号，交由工单 **ESC-0001** 核对；没有凭证，账面就仍按 380,000 元执行。\n- 若您认为账面金额本身有误，请说明依据，我转交核账处理。\n\n收到完整方案后，我会立即登记您承诺的付款日期和金额。",
+        "tool_calls": null,
+        "usage": {
+          "prompt_tokens": 2249,
+          "completion_tokens": 853,
+          "total_tokens": 3102,
+          "prompt_tokens_details": {
+            "cached_tokens": 1920
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 446
+          },
+          "prompt_cache_hit_tokens": 1920,
+          "prompt_cache_miss_tokens": 329
+        }
+      },
+      "tool": null,
+      "args": null,
+      "result": null,
+      "degraded": false,
+      "state_before": null,
+      "state_after": null,
+      "rule": null,
+      "detail": null
+    },
+    {
+      "step": 15,
+      "type": "state_transition",
+      "latency_ms": 1,
+      "input_tokens": null,
+      "output_tokens": null,
+      "output": null,
+      "tool": null,
+      "args": null,
+      "result": null,
+      "degraded": false,
+      "state_before": "NEGOTIATE/propose",
+      "state_after": "ESCALATED",
+      "rule": null,
+      "detail": null
+    }
+  ],
+  "totals": {
+    "llm_calls": 6,
+    "tool_calls": 5,
+    "tokens": 34433,
+    "latency_ms": 304
+  },
+  "outcome": {
+    "stage": "ESCALATED",
+    "task_completed": false,
+    "violations": []
+  },
+  "started_at": 1793716377.646446,
+  "ended_at": null
+}

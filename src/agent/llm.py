@@ -1,15 +1,24 @@
 """LLM 客户端抽象层。
 
-W1 使用 MockLLM 跑通端到端，不依赖真实 API。
-真实接入时实现 LLMClient 接口即可（function calling 格式）。
+两种实现：
+  - `MockLLMClient`：按预设脚本响应，用于离线演示与单测
+  - `OpenAICompatibleClient`：OpenAI 兼容的 `/chat/completions`（DeepSeek / Qwen / vLLM 等），
+    凭证与模型来自环境变量（见 `from_env`），不写入仓库
+
+真实接入只需实现 `LLMClient.chat`（function calling 格式）。
 """
 
 from __future__ import annotations
 
 import json
+import os
 import re
 from abc import ABC, abstractmethod
 from typing import Any
+
+import httpx
+
+from src.core.env import load_env_file
 
 
 _CONTRACT_RE = re.compile(r"HT-Y2026-\d{3}")
@@ -17,11 +26,15 @@ _INVOICE_RE = re.compile(r"INV-\d+")
 _AMOUNT_RE = re.compile(r"'amount':\s*(\d+)")
 
 
+class LLMError(RuntimeError):
+    """真实模型调用失败（配置缺失、网络错误、非 2xx、响应结构异常）。"""
+
+
 class LLMClient(ABC):
     @abstractmethod
     def chat(
         self,
-        messages: list[dict[str, str]],
+        messages: list[dict[str, Any]],
         tools: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         """返回 {"content": str | None, "tool_calls": [...] | None}。"""
@@ -45,7 +58,7 @@ class MockLLMClient(LLMClient):
 
     def chat(
         self,
-        messages: list[dict[str, str]],
+        messages: list[dict[str, Any]],
         tools: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         self._call_count += 1
@@ -136,15 +149,179 @@ class MockLLMClient(LLMClient):
             ],
         }
 
+    def describe(self) -> dict[str, Any]:
+        """报告用模型元信息：Mock 仅验证链路，不作为能力基线。"""
+        return {
+            "provider": "mock",
+            "model": "mock-llm",
+            "temperature": 0.0,
+            "top_p": 1.0,
+            "seed": None,
+        }
+
+
+class OpenAICompatibleClient(LLMClient):
+    """OpenAI 兼容协议的真实模型客户端。
+
+    仅依赖 `httpx`，适配任意提供 `POST /chat/completions` 的服务
+    （OpenAI / DeepSeek / Qwen / vLLM 等）。评测口径要求 temperature=0；
+    `seed` 仅在供应商支持时下发（不支持的服务会忽略或报错，故默认不下发）。
+    """
+
+    def __init__(
+        self,
+        base_url: str,
+        api_key: str,
+        model: str,
+        temperature: float = 0.0,
+        top_p: float = 1.0,
+        seed: int | None = None,
+        timeout: float = 60.0,
+        max_tokens: int | None = None,
+        http_client: httpx.Client | None = None,
+    ) -> None:
+        if not base_url or not model:
+            raise LLMError("真实模型缺少 base_url 或 model")
+        if not api_key:
+            raise LLMError("真实模型缺少 API key")
+        self.base_url = base_url.rstrip("/")
+        self.api_key = api_key
+        self.model = model
+        self.temperature = temperature
+        self.top_p = top_p
+        self.seed = seed
+        self.timeout = timeout
+        self.max_tokens = max_tokens
+        self._client = http_client
+
+    @property
+    def endpoint(self) -> str:
+        if self.base_url.endswith("/chat/completions"):
+            return self.base_url
+        return f"{self.base_url}/chat/completions"
+
+    @classmethod
+    def from_env(cls) -> "OpenAICompatibleClient":
+        """从环境变量构造；缺失必填项时 fail-fast，不静默回落到 Mock。
+
+        必填：`MTA_LLM_BASE_URL`（或 `OPENAI_BASE_URL`）、`MTA_LLM_API_KEY`
+        （或 `OPENAI_API_KEY`）、`MTA_LLM_MODEL`。
+        可选：`MTA_LLM_TEMPERATURE`（默认 0）、`MTA_LLM_TOP_P`（默认 1）、
+        `MTA_LLM_SEED`、`MTA_LLM_TIMEOUT`（默认 60）、`MTA_LLM_MAX_TOKENS`。
+        仓库根目录存在 `.env` 时会先加载（不覆盖已有环境变量）。
+        """
+        load_env_file()
+        base_url = os.environ.get("MTA_LLM_BASE_URL") or os.environ.get("OPENAI_BASE_URL")
+        api_key = os.environ.get("MTA_LLM_API_KEY") or os.environ.get("OPENAI_API_KEY")
+        model = os.environ.get("MTA_LLM_MODEL") or os.environ.get("OPENAI_MODEL")
+        missing = [
+            name
+            for name, value in (
+                ("MTA_LLM_BASE_URL", base_url),
+                ("MTA_LLM_API_KEY", api_key),
+                ("MTA_LLM_MODEL", model),
+            )
+            if not value
+        ]
+        if missing:
+            raise LLMError(f"真实模型配置缺失环境变量: {', '.join(missing)}")
+        try:
+            temperature = float(os.environ.get("MTA_LLM_TEMPERATURE", "0"))
+            top_p = float(os.environ.get("MTA_LLM_TOP_P", "1"))
+            timeout = float(os.environ.get("MTA_LLM_TIMEOUT", "60"))
+            raw_seed = os.environ.get("MTA_LLM_SEED")
+            seed = int(raw_seed) if raw_seed else None
+            raw_max = os.environ.get("MTA_LLM_MAX_TOKENS")
+            max_tokens = int(raw_max) if raw_max else None
+        except ValueError as e:
+            raise LLMError(f"真实模型环境变量格式非法: {e}") from e
+        return cls(
+            base_url=base_url,
+            api_key=api_key,
+            model=model,
+            temperature=temperature,
+            top_p=top_p,
+            seed=seed,
+            timeout=timeout,
+            max_tokens=max_tokens,
+        )
+
+    def describe(self) -> dict[str, Any]:
+        """报告用的模型元信息（不含 key）。"""
+        return {
+            "provider": "openai-compat",
+            "model": self.model,
+            "base_url": self.base_url,
+            "temperature": self.temperature,
+            "top_p": self.top_p,
+            "seed": self.seed,
+        }
+
+    def chat(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
+        body: dict[str, Any] = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": self.temperature,
+            "top_p": self.top_p,
+        }
+        if tools:
+            body["tools"] = tools
+            body["tool_choice"] = "auto"
+        if self.seed is not None:
+            body["seed"] = self.seed
+        if self.max_tokens is not None:
+            body["max_tokens"] = self.max_tokens
+
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+        client = self._client or httpx.Client(timeout=self.timeout)
+        try:
+            resp = client.post(self.endpoint, json=body, headers=headers)
+        except httpx.HTTPError as e:
+            raise LLMError(f"模型请求失败（{self.endpoint}）: {e}") from e
+        finally:
+            if self._client is None:
+                client.close()
+
+        if resp.status_code >= 400:
+            raise LLMError(
+                f"模型返回 HTTP {resp.status_code}: {resp.text[:200]}"
+            )
+        try:
+            payload = resp.json()
+            message = payload["choices"][0]["message"]
+        except (ValueError, KeyError, IndexError, TypeError) as e:
+            raise LLMError(f"模型响应结构异常: {resp.text[:200]}") from e
+
+        return {
+            "content": message.get("content"),
+            "tool_calls": message.get("tool_calls"),
+            "usage": payload.get("usage"),
+        }
+
 
 def get_llm_client(spec: str | None = None) -> LLMClient:
     """获取 LLM 客户端。
 
-    spec 形如 `module.factory`（来自场景 yaml 的 `demo.llm`）；
-    缺省回落到 MockLLMClient。框架侧不写死任何场景名。
+    spec 来源：环境变量 `MTA_LLM` 优先，其次场景 yaml 的 `demo.llm`。
+    支持：
+      - 缺省 / `mock`：MockLLMClient
+      - `openai_compat`（别名 `openai-compatible` / `openai`）：读取环境变量构造真实客户端
+      - `module.factory`：自定义实现（无参调用，便于场景注入）
+    框架侧不写死任何场景名。
     """
-    if not spec:
+    load_env_file()
+    spec = os.environ.get("MTA_LLM") or spec
+    if not spec or spec == "mock":
         return MockLLMClient()
+    if spec in ("openai_compat", "openai-compatible", "openai"):
+        return OpenAICompatibleClient.from_env()
     import importlib
 
     module_path, _, func_name = spec.rpartition(".")

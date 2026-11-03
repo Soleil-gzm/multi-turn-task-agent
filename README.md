@@ -1,4 +1,4 @@
-# multi-turn-task-agent
+﻿# multi-turn-task-agent
 
 配置驱动的**多轮任务型对话 Agent 框架**：以「目标 — 状态机 — 工具 — 策略 — 红线」五层结构实现多轮任务推进，具备程序化生成评测数据的能力，以及「规则 + LLM Judge + 轨迹审计」三级评测体系与服务化、可观测能力。
 
@@ -30,7 +30,7 @@
 
 ## 快速开始
 
-> **当前状态**：W1 框架主干、W2 数据层、G3 交互界面与 milktea 第二场景已完成——Walking Skeleton 跑通，12 条转移配置与逐条单测、6 个 mock 业务工具、80 条评测 case、话术表（39 条）与 policy 知识库（24 条片段，BM25 检索已接入 `query_policy`）、第二场景（3 工具 + 5 阶段 + 异常分支）、142 个单测与 v0 基线报告（Mock）。入口已泛化：demo / ui / eval 从 `configs/scenarios/*.yaml` 发现场景并按 `tools[].impl` 装配，`src/` 内无场景名。待做：真实模型接入（当前为 `MockLLMClient`）、FastAPI 服务化。各契约实现状态见 [Roadmap · 契约状态](docs/roadmap.md#契约状态诚实反映代码进度每个里程碑更新)。
+> **当前状态**：W1 框架主干、W2 数据层、G3 交互界面与 milktea 第二场景已完成——Walking Skeleton 跑通，12 条转移配置与逐条单测、6 个 mock 业务工具、80 条评测 case、话术表（39 条）与 policy 知识库（24 条片段，BM25 检索已接入 `query_policy`）、第二场景（3 工具 + 5 阶段 + 异常分支）、160 个单测与 v0 基线报告（Mock）。入口已泛化：demo / ui / eval 从 `configs/scenarios/*.yaml` 发现场景并按 `tools[].impl` 装配，`src/` 内无场景名。真实模型客户端（OpenAI 兼容）与 k=3 重复评测已就绪，待凭证产出真实基线；待做：真实模型基线实跑、FastAPI 服务化。各契约实现状态见 [Roadmap · 契约状态](docs/roadmap.md#契约状态诚实反映代码进度每个里程碑更新)。
 
 ### 环境准备
 
@@ -41,7 +41,7 @@
 
 ```bash
 python -c "import pydantic, yaml, pytest, jieba; print('deps ok')"
-python -m pytest tests/ -q      # 期望 142 passed
+python -m pytest tests/ -q      # 期望 160 passed
 ```
 
 ```bash
@@ -57,8 +57,9 @@ Windows PowerShell 通常没有 `make`，直接执行右列等价命令即可；
 | 目的 | 有 `make` | 无 `make`（Windows PowerShell） |
 | --- | --- | --- |
 | 多轮对话演示，trace 落盘 `eval/reports/traces/` | `make demo` | `python -m src.agent.demo` |
-| 契约 / 数据层 / UI / 场景单元测试（142 passed） | `make test` | `python -m pytest tests/ -v` |
-| 跑 80 条评测 case，生成分层 v0 报告 | `make eval` | `python -m src.eval.runner` |
+| 契约 / 数据层 / UI / 场景单元测试（160 passed） | `make test` | `python -m pytest tests/ -v` |
+| 跑 80 条评测 case（每条重复 3 次），生成分层报告 | `make eval` | `python -m src.eval.runner --k 3` |
+| 用真实模型跑评测（OpenAI 兼容，凭证走环境变量） | — | `python -m src.eval.runner --model openai_compat --k 3 --report eval/reports/v1_real_k3.json` |
 | 启动交互界面（Gradio） | `make ui` | `python -m src.ui.app` |
 | 运行任意场景（通用运行器） | — | `python scripts/run_scenario.py --config configs/scenarios/milktea.yaml` |
 | 重新生成 80 条评测集（确定性，可复现） | `make dataset` | `python -m src.synthesis.rule_based` |
@@ -105,7 +106,40 @@ print(turn.new_steps)                                # 本轮新增 trace 步数
 
 ### 接入真实模型
 
-实现 `LLMClient.chat(messages, tools)`，返回 `{"content": str | None, "tool_calls": [...] | None}`（OpenAI function calling 格式），替换 `MockLLMClient` 即可，Agent、状态机、工具与评测代码均不改动。
+框架内置 OpenAI 兼容客户端（`OpenAICompatibleClient`），只要能提供 `POST /chat/completions` 即可接入，**云端 API Key 与自部署都支持**：
+
+| 类型 | 示例 | Base URL |
+| --- | --- | --- |
+| 云端 API | OpenAI / DeepSeek / 通义千问（DashScope compatible-mode）/ Moonshot / 智谱 / SiliconFlow | 各厂商的 `/v1` 地址 |
+| 自部署 | vLLM / SGLang / Ollama / LM Studio / Xinference | 例如 `http://127.0.0.1:8000/v1`、`http://127.0.0.1:11434/v1` |
+
+选型硬要求：**模型必须支持 function calling（tool calls）**，否则只能聊天、无法驱动状态机与工具。建议先用云端 API 跑通，再换本地模型。
+
+凭证只从环境变量读取，支持仓库根目录 `.env`（已加入 `.gitignore`，不会提交）；优先级：**进程环境变量 > `.env`**：
+
+```powershell
+Copy-Item .env.example .env
+# 编辑 .env：MTA_LLM=openai_compat、BASE_URL、API_KEY、MODEL
+```
+
+```ini
+# .env 示例（DeepSeek 云端）
+MTA_LLM=openai_compat
+MTA_LLM_BASE_URL=https://api.deepseek.com/v1
+MTA_LLM_API_KEY=sk-...
+MTA_LLM_MODEL=deepseek-chat
+```
+
+```powershell
+python -m src.agent.demo                                    # 自动读取 .env
+python -m src.eval.runner --k 1 --model openai_compat       # 先冒烟 1 次
+python -m src.eval.runner --model openai_compat --k 3 `
+    --report eval/reports/v1_real_k3.json                    # 正式 k=3
+```
+
+可选参数：`MTA_LLM_TEMPERATURE`（默认 0）、`MTA_LLM_TOP_P`（默认 1）、`MTA_LLM_SEED`、`MTA_LLM_TIMEOUT`（默认 60）、`MTA_LLM_MAX_TOKENS`。配置缺失时客户端 fail-fast（报缺失的变量名），不会静默回落到 Mock。
+
+自定义供应商只需实现 `LLMClient.chat(messages, tools)`，返回 `{"content": str | None, "tool_calls": [...] | None}`（OpenAI function calling 格式），并以 `module.factory` 形式传给 `--model`；Agent、状态机、工具与评测代码均不改动。
 
 ### 新增一个场景
 
@@ -119,16 +153,18 @@ print(turn.new_steps)                                # 本轮新增 trace 步数
 
 ## 评测结果
 
-> 指标定义见 [评测设计](docs/eval-design.md)。当前被测模型为 **MockLLMClient**，下表只验证「评测集 → Agent → 指标 → 报告」链路，**不代表模型能力基线**，也不进版本间 Δ 表。
+> 指标定义见 [评测设计](docs/eval-design.md)。当前被测模型为 **MockLLMClient**，`k=3`（每条 case 重复 3 次，Mock 确定性因此 std=0），下表只验证「评测集 → Agent → 指标 → 报告」链路，**不代表模型能力基线**，也不进版本间 Δ 表。真实模型基线需配置凭证后按上方命令产出。
 
-| 指标 | 当前 v0（Mock） | 说明 |
+| 指标 | 当前 v0（Mock，k=3） | 说明 |
 | --- | --- | --- |
-| 终态匹配率 | 100.0% | core 100.0% / boundary 100.0% / adversarial 100.0% |
-| 任务完成率 | 35.0% | 终态为 `CLOSED` 的样本占比 |
-| 工具序列均分 | 0.80 | 覆盖率 × 0.5 + 顺序 × 0.3，命中禁用动作扣 0.5 |
-| 矛盾数据告知率 | 100.0%（6/6） | 仅统计真实出现账实不符且调用了 `diff_statement` 的样本 |
-| 超政策拒绝话术率 | 100.0%（10/10） | 仅统计出现过超政策请求（如「减免 50%」）的样本 |
-| 工具覆盖 | 6/6 全覆盖 | 每个注册工具至少被 1 条 case 触达（防 P-05 类空转工具） |
+| 终态匹配率 | 100.0% ± 0.0% | core 100.0% / boundary 100.0% / adversarial 100.0% |
+| 任务完成率 | 35.0% ± 0.0% | 终态为 `CLOSED` 的样本占比 |
+| 工具序列均分 | 0.80 ± 0.00 | 覆盖率 × 0.5 + 顺序 × 0.3，命中禁用动作扣 0.5 |
+| Pass^3 | 100.0%（80/80） | 终态匹配 + 工具序列完全通过 + 无模型侧违规，3 次全部成功 |
+| Pass@1 | 100.0% | 全部 240 次试验的单次成功率 |
+| 矛盾数据告知率 | 100.0%（18/18） | 3 次重复池化；仅统计账实不符且调用 `diff_statement` 的试验 |
+| 超政策拒绝话术率 | 100.0%（30/30） | 3 次重复池化；仅统计出现超政策请求的试验 |
+| 工具覆盖 | 6/6 全覆盖 | 每个注册工具至少被 1 条 case 的任意一次试验触达（防空转工具） |
 | 承诺合规率 | 未采集 | 需真实模型；对抗层样本 40 条 |
 | 注入拦截率 | 未采集 | 数据集含 8 条 injection（其中 2 条间接注入） |
 | 幻觉率 | 未采集 | 需真实模型 |

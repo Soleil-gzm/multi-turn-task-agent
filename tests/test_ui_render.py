@@ -171,7 +171,9 @@ class TestSessionHelpers:
 
 _REPORT = {
     "model": "mock-llm",
+    "k": 3,
     "total_cases": 80,
+    "pass_power_k": 1.0,
     "stage_match_rate": 1.0,
     "task_completion_rate": 0.35,
     "avg_tool_score": 0.8,
@@ -197,6 +199,7 @@ class TestEvalPage:
         assert "0.80" in html
         assert "6/6" in html
         assert "mock-llm" in html and "80" in html
+        assert "k=3" in html and "Pass^3" in html
 
     def test_metrics_missing_report_shows_hint(self):
         html = ui.metrics_html(None)

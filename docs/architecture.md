@@ -21,7 +21,7 @@ multi-turn-task-agent/
 │   ├── tools/
 │   │   ├── registry.py         # C2 统一返回 + 注册表 + build_registry_from_config（按 tools[].impl 装配）
 │   │   └── receivables/tools.py # 6 个业务工具 + JSON Schema（mock 数据；场景名仅出现在 yaml 的 impl 字段）
-│   ├── agent/                  # loop.py（ReAct + 状态机）、llm.py（接口 + Mock）、demo.py
+│   ├── agent/                  # loop.py（ReAct + 状态机）、llm.py（接口 + Mock + OpenAI 兼容客户端）、demo.py
 │   ├── guardrails/guardrails.py # C7 输入检测 / 工具侧隔离 / 输出校验
 │   ├── synthesis/rule_based.py # 规则化生成 80 条评测集
 │   ├── eval/                   # contracts.py（C1）、runner.py（评测运行器）
@@ -346,3 +346,16 @@ print(registry.invoke("query_policy", query="延期最多多少天"))
 2. **终态封闭**：`ended=True` 后继续 `send` 不会调用 LLM（`llm_calls` 不变、`new_steps=0`），只返回提示话术；`run` 在终态即 `break`。
 
 trace 快照按轮深拷贝，已返回的 `TurnResult` 不会被后续轮次改写。
+
+## 8. 模型接入（真实模型）
+
+`src/agent/llm.py` 提供两种客户端，共同实现 `LLMClient.chat(messages, tools)`：
+
+| 客户端 | 用途 | 配置 |
+| --- | --- | --- |
+| `MockLLMClient` | 离线演示、单测、评测链路验证 | 无；`describe()` 返回 `provider=mock` |
+| `OpenAICompatibleClient` | 真实模型（OpenAI / DeepSeek / Qwen / vLLM 等 `/chat/completions`） | 环境变量，缺必填项 fail-fast |
+
+环境变量：`MTA_LLM_BASE_URL`（或 `OPENAI_BASE_URL`）、`MTA_LLM_API_KEY`（或 `OPENAI_API_KEY`）、`MTA_LLM_MODEL` 为必填；`MTA_LLM_TEMPERATURE`（默认 0）、`MTA_LLM_TOP_P`（默认 1）、`MTA_LLM_SEED`、`MTA_LLM_TIMEOUT`、`MTA_LLM_MAX_TOKENS` 可选。仓库根目录的 `.env`（已在 `.gitignore` 中忽略，模板见 `.env.example`）会在入口调用时自动加载，且不覆盖已有进程环境变量；`MTA_LLM=openai_compat` 可让 demo / UI / eval 统一走真实模型，`--model openai_compat` 对单次命令生效。凭证只从环境读取，不写入 yaml 或报告（`describe()` 会剔除 key）。
+
+协议约束：工具调用轮次的消息顺序必须是 `assistant(tool_calls)` → `tool(tool_call_id=...)`，否则 OpenAI 兼容接口会拒绝 `role=tool`。`loop.py` 在工具结果前写入带 `tool_calls` 的 assistant 消息，并在回复被矛盾告知 / 拒绝话术覆盖时追加一条 assistant 消息，保证历史与用户实际看到的一致（有单测覆盖）。

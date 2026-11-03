@@ -291,7 +291,11 @@ def default_scenario_path() -> Path:
     """默认场景：`MTA_CONFIG` 环境变量 > 第一个带评测集的场景 > 第一个场景。
 
     判定依据是配置字段（`eval.dataset` 下是否存在 cases.jsonl），而非场景名。
+    仓库根目录存在 `.env` 时先加载（不覆盖已有环境变量）。
     """
+    from src.core.env import load_env_file
+
+    load_env_file()
     env = os.environ.get("MTA_CONFIG")
     if env:
         path = Path(env)

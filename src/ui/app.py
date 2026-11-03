@@ -346,11 +346,16 @@ def metrics_html(report: dict[str, Any] | None) -> str:
         if untouched
         else ""
     )
+    model_line = (
+        f'<div class="mta-card-item">model={_esc(report.get("model", "-"))} · '
+        f'样本数={_esc(report.get("total_cases", "-"))} · '
+        f'k={_esc(report.get("k", 1))} · '
+        f'Pass^{_esc(report.get("k", 1))}={_fmt_pct(report.get("pass_power_k"))}</div>'
+    )
     return (
         f'<div class="mta-card"><div class="mta-card-title">评测指标</div>'
         f'<div class="mta-stats">{body}</div>'
-        f'<div class="mta-card-item">model={_esc(report.get("model", "-"))} · '
-        f'样本数={_esc(report.get("total_cases", "-"))}</div>{untouch_note}</div>'
+        f'{model_line}{untouch_note}</div>'
     )
 
 
