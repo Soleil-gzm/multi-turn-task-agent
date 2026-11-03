@@ -1,0 +1,73 @@
+scenario:
+  id: milktea
+  display_name: 奶茶店会员回访
+  version: 1
+
+goal:
+  success_criteria: "确认会员权益并完成到店预约"
+  max_rounds: 10
+  on_success: book_visit
+
+# 与 receivables 的差异全部由本文件表达：
+#   - 无子状态（offer_states 为空）
+#   - 5 个业务阶段 + 1 个异常终态（ESCALATED）
+#   - 转移条件只使用框架内置事实（round / offer_accepted / verify_failures / customer_refuse ...）
+state_machine:
+  stages: [INIT, GREET, IDENTIFY, OFFER, CONFIRM, CLOSED, ESCALATED]
+  escalate_to: ESCALATED
+  offer_states: {}
+  transitions:
+    - from: INIT
+      to: GREET
+      when: "session_start"
+    - from: GREET
+      to: IDENTIFY
+      when: "round >= 2"
+    # 异常分支放在正常分支之前：连续两轮无法核实会员身份 → 升级
+    - from: IDENTIFY
+      to: ESCALATED
+      when: "verify_failures >= 2"
+    - from: IDENTIFY
+      to: OFFER
+      when: "round >= 3"
+    - from: OFFER
+      to: CONFIRM
+      when: "offer_accepted"
+    - from: OFFER
+      to: ESCALATED
+      when: "customer_refuse"
+    - from: CONFIRM
+      to: CLOSED
+      when: "round >= 4"
+    - from: CONFIRM
+      to: OFFER
+      when: "customer_withdraw"
+    - from: "*"
+      to: ESCALATED
+      when: "redline_hit or policy_violation_attempt >= 2"
+
+entities:
+  member: [member_id, name, level, points, expire_date]
+
+tools:
+  - name: query_member
+    impl: scenarios.milktea.tools.query_member
+  - name: check_benefit
+    impl: scenarios.milktea.tools.check_benefit
+  - name: book_visit
+    impl: scenarios.milktea.tools.book_visit
+
+policy:
+  forbidden_patterns: ["威胁", "保证一定"]
+
+prompts:
+  system: configs/prompts/milktea/system.txt
+
+# 场景自带的演示脚本：通用运行器 scripts/run_scenario.py 读取
+demo:
+  llm: scenarios.milktea.llm.build
+  messages:
+    - "你好"
+    - "我是会员 M1001"
+    - "我的积分什么时候到期？"
+    - "可以，帮我预约这周六"

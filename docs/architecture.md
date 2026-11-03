@@ -12,8 +12,9 @@ multi-turn-task-agent/
 ├── Makefile                    # make demo / dataset / templates / eval / test
 ├── requirements.txt            # 运行与测试依赖（含 jieba：检索层必需）
 ├── configs/
-│   ├── scenarios/receivables.yaml
-│   └── prompts/receivables/system.txt
+│   ├── scenarios/              # receivables.yaml（主线）、milktea.yaml（第二场景）
+│   └── prompts/                # 每场景一个 system.txt 目录
+├── scenarios/                  # 场景包：loader.py（按 yaml 动态装配工具）+ milktea/（tools/llm）
 ├── src/
 │   ├── core/                   # config.py（C3 配置与启动预检）、trace.py（C6）
 │   ├── state/machine.py        # 元组状态机 + 受限条件求值
@@ -37,8 +38,10 @@ multi-turn-task-agent/
 │   ├── graders/                # （规划）LLM Judge / 轨迹审计
 │   ├── metrics/                # （规划）指标采集
 │   └── reports/                # v0_baseline.json + traces/ + manual_review_20.md
-├── scripts/build_talk_template.py  # 话术 YAML → xlsx
-└── tests/                      # test_contracts.py（契约/状态机/工具）+ test_data_layer.py（话术/知识库/检索）
+├── scripts/
+│   ├── build_talk_template.py  # 话术 YAML → xlsx
+│   └── run_scenario.py         # 通用场景运行器（读 yaml，含 demo.messages / demo.llm）
+└── tests/                      # 契约/状态机/工具 + 数据层 + UI + 第二场景
 ```
 
 > 标注「（规划）」的目录当前只有包骨架或为空，无实现。

@@ -12,7 +12,7 @@
 - 评测体系设计定稿：[评测设计](eval-design.md)
 - 数据集选型定案（三集分工）与工程契约规范：[方案评审与细化](方案评审与细化.md)
 - 文档骨架与公开边界划分
-- **W1 Walking Skeleton（已跑通）**：`make demo` 走完一次多轮并落 trace，终态 `CLOSED`、任务完成；`make test` 128 passed；`make eval` 产出 v0 报告
+- **W1 Walking Skeleton（已跑通）**：`make demo` 走完一次多轮并落 trace，终态 `CLOSED`、任务完成；`make test` 141 passed；`make eval` 产出 v0 报告
 - **框架主干**：配置驱动 + 元组状态机（12 条转移、`NEGOTIATE` 4 个子状态）+ 工具注册表 + trace + 启动预检
 - **工具层**：6 个业务工具（mock 数据）全部注册，含可返回矛盾数据的 `diff_statement`
 - **状态机测试**：12 条转移逐条单测（含两条 `or` 条件分支）
@@ -24,15 +24,16 @@
 - **矛盾数据告知**：`response.contradiction` 声明工具 / 字段 / 话术，循环内检测到两字段不一致即主动告知；评测新增「矛盾数据告知率」（当前 100%，6/6）
 - **超政策拒绝话术**：`response.policy_refusal` 声明抽取正则 / 对应 policy 字段 / 拒绝模板，超限时显式拒绝并给政策内替代；评测新增「超政策拒绝话术率」（当前 100%，10/10），重复超限计入 `policy_violation_attempt` 触发升级
 - **评测链路**：80 条 case 可加载、可评测、可出分层报告
-- **W2 数据层**：话术表（39 条，YAML 唯一真源 + `make templates` 生成 xlsx，占位符三方一致校验入测试）+ policy 知识库（24 条片段：公开法规要点 + 虚构内部政策，BM25 检索已接入 `query_policy`）；128 个单测全绿
+- **W2 数据层**：话术表（39 条，YAML 唯一真源 + `make templates` 生成 xlsx，占位符三方一致校验入测试）+ policy 知识库（24 条片段：公开法规要点 + 虚构内部政策，BM25 检索已接入 `query_policy`）；141 个单测全绿
 - **W0 prior-art 对照**：[prior-art.md](prior-art.md)——三份参照（RiSAWOZ / ABCD / τ-bench）职责边界 + 14 条逐项对照清单（7 条 ✅ 已对齐、6 条 ⬜ 待核对带行动项、1 条不适用），含指标可比性边界声明与许可声明
 - **人工抽检 20 条**：20/20 通过（D1 20/20、D2 20/20、D3 18/18、D4 20/20）；P-01 ~ P-05 全部修复——P-05 通过 core 新增 `invoice_check` 子类型（4 条）+ Mock 发票路由补齐，报告新增「工具覆盖 6/6」维度防空转工具（见 [抽检记录](../eval/reports/manual_review_20.md)）
 - **G3 交互界面（已完成）**：Gradio 单页（对话 + 评测两个 Tab），`Agent.start/session.send` 会话级增量、Trace 面板与 JSON 导出、评测页读取 `v0_baseline.json` 渲染六项指标；Gradio 6.31.0 已锁定，含构建与启动的端到端测试（见 [src/ui/app.py](../src/ui/app.py)、[gradio-reference.md](gradio-reference.md)）
+- **milktea 第二场景（已实现）**：`configs/scenarios/milktea.yaml` + `scenarios/milktea/`（3 个工具 + 演示 LLM）+ 通用运行器 `scripts/run_scenario.py`；实测 `INIT → GREET → IDENTIFY → OFFER → CONFIRM → CLOSED`，异常分支 `ESCALATED` 可触发，trace schema 与 receivables 一致。4 条硬标准中 3 条通过；「`grep src/` 零场景名」为存量问题（14 处默认路径常量），需一次性泛化入口（见下）
 
 ### 进行中
 
-- milktea 第二场景：通用性验证 4 条硬标准
 - 真实模型接入：当前 LLM 为 `MockLLMClient`，评测数字只验证链路，不代表模型能力
+- 入口泛化（milktea 标准 2 的遗留）：把 demo / ui / eval / retrieval / synthesis 的默认场景改成「发现式」（configs/scenarios/*.yaml + 配置字段），并将 `src/tools/receivables` 迁到 `scenarios/receivables/`，使 `grep -R "milktea\|receivables" src/` 归零
 
 ### 契约状态（诚实反映代码进度，每个里程碑更新）
 
@@ -53,8 +54,8 @@
 | 项 | 内容 | 验收锚点 | 状态 |
 | --- | --- | --- | --- |
 | Walking Skeleton | 2 状态（`IDENTIFY → NEGOTIATE`）+ 3 工具（查账款 / 查政策 / 记承诺）+ 10 条 case，端到端一条命令跑通 | `make demo` 走完一次多轮并落 trace；先跑通再扩充，不追求契约全覆盖 | 已完成（`make demo` 已验证，当前已扩到 12 转移 / 6 工具） |
-| 框架主干 | 配置驱动 + 元组状态机 + 工具注册表 + trace + 启动预检 | 两场景零代码改动可跑（C3/C6 生效） | 部分完成（组件均落地；两场景零改动验证待 milktea） |
-| 第二场景 yaml | milktea：仅 yaml + 数据即可跑通 | 通用性验证 4 条硬标准 | 未开始 |
+| 框架主干 | 配置驱动 + 元组状态机 + 工具注册表 + trace + 启动预检 | 两场景零代码改动可跑（C3/C6 生效） | 已完成（组件均落地；milktea 场景验证同引擎可跑） |
+| 第二场景 yaml | milktea：仅 yaml + 数据即可跑通 | 通用性验证 4 条硬标准 | 已完成（3/4 条通过：零框架改动、同引擎、差异可列举；「grep src/ 零场景名」为存量 14 处，待入口泛化） |
 | 场景数据层 | receivables 话术表 + 50–80 条案例（规则化生成，含 oracle）+ policy 知识库 | 占位符三方一致校验通过 | 已完成（80 条 case 含 oracle 与 content_hash；39 条话术表 + 24 条知识库片段，占位符三方一致校验入测试） |
 | 状态机与工具层 | 12 条转移 + 6 个业务工具（mock 单据） | 每条转移 1 个单测 | 已完成（12 条转移逐条单测，6 工具已实现） |
 | 服务化 | FastAPI `/chat` + SQLite + `docker compose up` | 换机器一条命令起来 | 未开始 |

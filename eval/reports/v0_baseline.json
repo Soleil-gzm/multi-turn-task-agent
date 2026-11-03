@@ -15,9 +15,9 @@
     "rate": 1.0
   },
   "tool_coverage": {
+    "query_policy": 50,
     "record_promise": 28,
     "query_receivable": 76,
-    "query_policy": 50,
     "check_invoice": 4,
     "escalate": 52,
     "diff_statement": 6

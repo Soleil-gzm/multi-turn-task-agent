@@ -30,7 +30,7 @@
 
 ## 快速开始
 
-> **当前状态**：W1 框架主干与 W2 数据层已完成——Walking Skeleton 跑通，12 条转移配置与逐条单测、6 个 mock 业务工具、80 条评测 case、话术表（39 条）与 policy 知识库（24 条片段，BM25 检索已接入 `query_policy`）、128 个单测与 v0 基线报告（Mock）。待做：milktea 第二场景、真实模型接入（当前为 `MockLLMClient`）、FastAPI 服务化。各契约实现状态见 [Roadmap · 契约状态](docs/roadmap.md#契约状态诚实反映代码进度每个里程碑更新)。
+> **当前状态**：W1 框架主干、W2 数据层、G3 交互界面与 milktea 第二场景已完成——Walking Skeleton 跑通，12 条转移配置与逐条单测、6 个 mock 业务工具、80 条评测 case、话术表（39 条）与 policy 知识库（24 条片段，BM25 检索已接入 `query_policy`）、第二场景（3 工具 + 5 阶段 + 异常分支）、141 个单测与 v0 基线报告（Mock）。待做：真实模型接入（当前为 `MockLLMClient`）、FastAPI 服务化、入口泛化（消除 `src/` 中的默认场景名）。各契约实现状态见 [Roadmap · 契约状态](docs/roadmap.md#契约状态诚实反映代码进度每个里程碑更新)。
 
 ### 环境准备
 
@@ -41,7 +41,7 @@
 
 ```bash
 python -c "import pydantic, yaml, pytest, jieba; print('deps ok')"
-python -m pytest tests/ -q      # 期望 128 passed
+python -m pytest tests/ -q      # 期望 141 passed
 ```
 
 ```bash
@@ -57,9 +57,10 @@ Windows PowerShell 通常没有 `make`，直接执行右列等价命令即可；
 | 目的 | 有 `make` | 无 `make`（Windows PowerShell） |
 | --- | --- | --- |
 | 多轮对话演示，trace 落盘 `eval/reports/traces/` | `make demo` | `python -m src.agent.demo` |
-| 契约 / 数据层 / UI 单元测试（128 passed） | `make test` | `python -m pytest tests/ -v` |
+| 契约 / 数据层 / UI / 场景单元测试（141 passed） | `make test` | `python -m pytest tests/ -v` |
 | 跑 80 条评测 case，生成分层 v0 报告 | `make eval` | `python -m src.eval.runner` |
 | 启动交互界面（Gradio） | `make ui` | `python -m src.ui.app` |
+| 运行任意场景（通用运行器） | — | `python scripts/run_scenario.py --config configs/scenarios/milktea.yaml` |
 | 重新生成 80 条评测集（确定性，可复现） | `make dataset` | `python -m src.synthesis.rule_based` |
 | 由话术 YAML 真源生成 xlsx 模板 | `make templates` | `python scripts/build_talk_template.py` |
 | 安装依赖 | `make install` | `python -m pip install -r requirements.txt` |
@@ -108,10 +109,13 @@ print(turn.new_steps)                                # 本轮新增 trace 步数
 
 ### 新增一个场景
 
-1. 复制 `configs/scenarios/receivables.yaml`，改 `scenario` / `goal` / `state_machine` / `policy`
-2. 按 `tools[].impl` 提供工具实现（沿用 C2 统一返回）
-3. 提供 system prompt 与该场景的 case 数据
-4. `load_config` 启动预检通过即可运行，`src/` 不需要任何业务分支
+参考已落地的第二场景 `scenarios/milktea/`：
+
+1. 新建 `configs/scenarios/<name>.yaml`：写 `scenario` / `goal` / `state_machine` / `tools` / `prompts`，可选 `demo`（演示脚本与 LLM）
+2. 新建场景包 `scenarios/<name>/tools.py`：实现工具、导出 `SCHEMAS`（沿用 C2 统一返回）
+3. 新建 `configs/prompts/<name>/system.txt`；如需演示，再提供 `scenarios/<name>/llm.py`
+4. 运行：`python scripts/run_scenario.py --config configs/scenarios/<name>.yaml`
+5. `load_config` 启动预检通过即可跑通，`src/` 不需要任何业务分支
 
 ## 评测结果
 

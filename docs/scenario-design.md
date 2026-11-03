@@ -82,7 +82,7 @@
 
 ## 4. 场景二：milktea（通用性验证）
 
-> **当前状态**：未实施。`configs/scenarios/milktea.yaml` 与 milktea 数据尚未创建，本节为验收标准定义。
+> **当前状态**：已实现。`configs/scenarios/milktea.yaml` + `configs/prompts/milktea/system.txt` + 场景包 `scenarios/milktea/`（3 个工具 + 确定性演示 LLM）；通用运行器 `scripts/run_scenario.py` 可一条命令跑通。
 
 验证「业务规则全部由 yaml 注入」：换场景 = 换一个 yaml + 一份数据。
 
@@ -94,6 +94,28 @@
 4. **差异可列举**：两场景转移表逐行 diff，每处差异都能由 YAML 字段表达
 
 反例：需改框架代码才能跑通、只换显示名沿用同一转移表、异常分支靠硬编码——均判为不通过。
+
+**验收结果（`tests/test_milktea_scenario.py`，13 条）**：
+
+| 标准 | 结果 | 证据 |
+| --- | --- | --- |
+| 1 零代码改动 | ✅ | 本轮只新增 `scenarios/`、`scripts/run_scenario.py`、`configs/{scenarios,prompts}/milktea*`、`tests/`；`src/` 无改动 |
+| 2 无业务分支 | ⚠️ **未通过** | `grep -R "milktea\|receivables" src/` 命中 14 处（**均为存量**，非本次引入）：`agent/demo.py`(2)、`eval/runner.py`(3)、`ui/app.py`(2)、`retrieval/__init__.py`(1)、`synthesis/rule_based.py`(1)、`tools/receivables/tools.py`(5) |
+| 3 状态机同引擎 | ✅ | 实测 `INIT → GREET → IDENTIFY → OFFER → CONFIRM → CLOSED`（5 次推进），异常分支 `IDENTIFY → ESCALATED`（连续 2 轮无法核实）、`OFFER → ESCALATED`（客户拒绝）；trace 顶层字段与 step 类型集合与 receivables 完全一致 |
+| 4 差异可列举 | ✅ | 转移表对称差非空；每条转移仅用 `from/to/when` 三字段，`when` 变量全部落在框架内置事实集合内（单测校验） |
+
+**标准 2 的差距说明**：命中均为「默认路径常量 / 场景工具包目录名」，不含 `if scenario == ...` 这类分支逻辑，但字面口径未达标。消除它需要一次性泛化 5 个入口（demo / ui / eval / retrieval / synthesis）并把 `src/tools/receivables` 移到 `scenarios/receivables/`——这会改动 `src/agent`、`src/ui`、`src/tools`，与标准 1「零代码改动」直接冲突。因此本轮如实记录为未通过，泛化方案待单独立项（见 Roadmap）。
+
+**milktea 与 receivables 的差异（全部由 yaml 表达）**：
+
+| 维度 | receivables | milktea |
+| --- | --- | --- |
+| stages | `INIT/IDENTIFY/NEGOTIATE/CONFIRM/CLOSED/ESCALATED` | `INIT/GREET/IDENTIFY/OFFER/CONFIRM/CLOSED/ESCALATED` |
+| 子状态 | `NEGOTIATE` 4 个（probe/propose/counter/final） | 无 |
+| 转移条数 | 12 | 9 |
+| 工具体系 | 6 个（合同/发票/对账/政策/承诺/升级） | 3 个（会员/权益/预约），位于 `scenarios/milktea/` |
+| 业务策略 | 政策豁免 + 矛盾告知 + 超政策拒绝 | 无（`response` 段空缺） |
+| 成功判据 | 记录付款承诺 | 登记到店预约 |
 
 ## 5. 场景三：公开数据集接入（框架验证与评测器校准）
 
