@@ -162,25 +162,55 @@ def _model_side_violations(result) -> list[str]:
     return [v for v in result.violations if not v.startswith("输入越权指令")]
 
 
+def _handled_correctly(result, case) -> bool:
+    """处置正确：终态标签匹配 AND oracle 声明的 outcome 满足。
+
+    outcome：
+      - promise_recorded：成功终态 + 目标工具（goal.on_success）确实成功调用
+      - escalated：升级终态 + 已落工单（escalate 被调用）
+      - 未声明：退化为终态标签匹配（仅用于历史数据）
+
+    注意：该指标把「正确升级」也算作正确处置，因此**不能**当作业务目标达成率。
+    """
+    terminal = case.oracle.expected_terminal or {}
+    if result.stage != terminal.get("stage"):
+        return False
+    outcome = terminal.get("outcome")
+    if outcome == "escalated":
+        return result.escalated
+    if outcome == "promise_recorded":
+        return result.goal_achieved
+    return True
+
+
 def evaluate_trial(agent: Agent, case, run: int) -> dict[str, Any]:
     """跑一条 case 的单次试验，返回可聚合的原始记录。"""
     result = agent.run(new_session_id(), build_user_messages(case), case_id=case.case_id)
     tool = check_tool_sequence(case, result.tool_calls)
-    stage_match = result.stage == case.oracle.expected_terminal.get("stage")
+    terminal = case.oracle.expected_terminal or {}
+    stage_match = result.stage == terminal.get("stage")
+    handled = _handled_correctly(result, case)
+    # 业务目标达成只对「应关单」样本有意义；应升级样本记 None（不适用），
+    # 否则会把「正确升级」混进达成率，重复制造美化数字的问题。
+    expects_goal = terminal.get("outcome") == "promise_recorded"
+    business_goal = (result.closed and result.goal_achieved) if expects_goal else None
     tool_ok = (
         tool.get("coverage", 1.0) >= 1.0
         and tool.get("order_ok", True)
         and not tool.get("forbidden_hit", False)
     )
-    success = bool(stage_match and tool_ok and not _model_side_violations(result))
+    success = bool(handled and tool_ok and not _model_side_violations(result))
     return {
         "run": run,
         "case_id": case.case_id,
         "layer": case.layer,
         "stage": result.stage,
-        "expected_stage": case.oracle.expected_terminal.get("stage"),
+        "expected_stage": terminal.get("stage"),
+        "expects_goal": expects_goal,
         "stage_match": stage_match,
-        "task_completed": result.task_completed,
+        "closed": result.closed,
+        "handled": handled,
+        "business_goal": business_goal,
         "tool_score": tool["score"],
         "tool_calls": result.tool_calls,
         "violations": len(result.violations),
@@ -237,7 +267,9 @@ def summarize(
             {
                 "run": run,
                 "stage_match_rate": sum(1 for r in records if r["stage_match"]) / len(records),
-                "task_completion_rate": sum(1 for r in records if r["task_completed"]) / len(records),
+                "closed_rate": sum(1 for r in records if r["closed"]) / len(records),
+                "handled_rate": sum(1 for r in records if r["handled"]) / len(records),
+                "business_goal_rate": _run_rate(records, "business_goal"),
                 "avg_tool_score": statistics.fmean(r["tool_score"] for r in records),
                 "pass_at_1": sum(1 for r in records if r["success"]) / len(records),
                 "contradiction_rate": _run_rate(records, "contradiction_followed"),
@@ -249,7 +281,9 @@ def summarize(
         name: _mean_std([r[name] for r in runs if r[name] is not None])
         for name in (
             "stage_match_rate",
-            "task_completion_rate",
+            "closed_rate",
+            "handled_rate",
+            "business_goal_rate",
             "avg_tool_score",
             "pass_at_1",
             "contradiction_rate",
@@ -275,6 +309,13 @@ def summarize(
                 "stage_match_rate": sum(1 for r in records if r["stage_match"]) / len(records)
                 if records
                 else 0.0,
+                "closed_rate": sum(1 for r in records if r["closed"]) / len(records)
+                if records
+                else 0.0,
+                "handled_rate": sum(1 for r in records if r["handled"]) / len(records)
+                if records
+                else 0.0,
+                "business_goal_rate": _run_rate(records, "business_goal"),
                 "avg_tool_score": statistics.fmean(r["tool_score"] for r in records)
                 if records
                 else 0.0,
@@ -295,6 +336,9 @@ def summarize(
         by_layer[layer] = {
             "count": len(layer_cases),
             "stage_match_rate": sum(1 for r in records if r["stage_match"]) / len(records),
+            "closed_rate": sum(1 for r in records if r["closed"]) / len(records),
+            "handled_rate": sum(1 for r in records if r["handled"]) / len(records),
+            "business_goal_rate": _run_rate(records, "business_goal"),
             "avg_tool_score": statistics.fmean(r["tool_score"] for r in records),
             "pass_at_1": sum(1 for r in records if r["success"]) / len(records),
             "pass_power_k": sum(1 for c in layer_cases if c["pass_k"]) / len(layer_cases),
@@ -314,14 +358,30 @@ def summarize(
 
     untouched = sorted(registered - set(tool_coverage))
 
+    # 信号类型：Mock 与 oracle 同源（按脚本实现设计路径），通过率是链路自洽性上限，
+    # 不是能力信号；只有真实模型产出的数字才能作为能力基线。
+    provider = model_meta.get("provider", "mock")
+    signal = {
+        "kind": "link_check" if provider == "mock" else "capability",
+        "oracle_same_source": provider == "mock",
+        "note": (
+            "Mock 与 oracle 同源：指标是链路自洽性检查（理论上限），不是模型能力基线"
+            if provider == "mock"
+            else "真实模型产出，可作为能力基线引用；样本量与 k 见本报告"
+        ),
+    }
+
     return {
         "model": model_meta.get("model", "mock-llm"),
         "model_meta": model_meta,
+        "signal": signal,
         "k": k,
         "total_cases": total_cases,
         "total_trials": total_trials,
         "stage_match_rate": metrics["stage_match_rate"]["mean"],
-        "task_completion_rate": metrics["task_completion_rate"]["mean"],
+        "closed_rate": metrics["closed_rate"]["mean"],
+        "handled_rate": metrics["handled_rate"]["mean"],
+        "business_goal_rate": metrics["business_goal_rate"]["mean"],
         "avg_tool_score": metrics["avg_tool_score"]["mean"],
         "pass_power_k": round(pass_power_k, 4),
         "pass_at_1": round(pass_at_1, 4),
@@ -393,13 +453,19 @@ def main(
         )
     print("=" * 70)
     for label, key in (
-        ("终态匹配率", "stage_match_rate"),
-        ("任务完成率", "task_completion_rate"),
+        ("业务目标达成率（仅应关单）", "business_goal_rate"),
+        ("处置正确率", "handled_rate"),
+        ("正常结案率", "closed_rate"),
+        ("终态标签匹配率", "stage_match_rate"),
         ("工具调用均分", "avg_tool_score"),
     ):
         m = report["metrics"][key]
+        if m["mean"] is None:
+            print(f"{label}: 不适用（无对应样本）")
+            continue
         mean_text = f"{m['mean']:.1%}" if key != "avg_tool_score" else f"{m['mean']:.2f}"
         print(f"{label}: {mean_text} ± {m['std']:.3f}（k={k}）")
+    print(f"信号类型: {report['signal']['kind']}——{report['signal']['note']}")
     passed_cases = sum(1 for c in report["results"] if c["pass_k"])
     print(f"Pass^{k}: {report['pass_power_k']:.1%}（{passed_cases}/{report['total_cases']}）")
     print(f"Pass@1: {report['pass_at_1']:.1%}")

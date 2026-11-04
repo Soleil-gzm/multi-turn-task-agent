@@ -37,7 +37,7 @@ multi-turn-task-agent/
 │   ├── datasets/receivables/cases.jsonl   # 80 条评测集（含 oracle 与 content_hash）
 │   ├── graders/                # （规划）LLM Judge / 轨迹审计
 │   ├── metrics/                # （规划）指标采集
-│   └── reports/                # v0_baseline.json（Mock k=3）+ v1_smoke_k1.json（真实模型冒烟）+ traces/ + manual_review_20.md
+│   └── reports/                # v0_baseline.json（Mock k=3，signal=link_check）+ v1_smoke_k1.json（真实模型冒烟）+ traces/ + manual_review_20.md
 ├── scripts/
 │   ├── build_talk_template.py  # 话术 YAML → xlsx
 │   └── run_scenario.py         # 通用场景运行器（读 yaml，含 demo.messages / demo.llm）

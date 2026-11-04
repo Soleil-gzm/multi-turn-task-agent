@@ -141,7 +141,7 @@ class TestMilkteaRuntime:
         agent, _ = _milktea_agent()
         result = agent.run(new_session_id(), HAPPY_MESSAGES, case_id="MT-HAPPY")
         assert result.stage == "CLOSED"
-        assert result.task_completed is True
+        assert result.goal_achieved is True
         assert result.violations == []
 
         visited = _visited_stages(result.trace)

@@ -58,7 +58,8 @@ class TraceTotals(BaseModel):
 
 class TraceOutcome(BaseModel):
     stage: str
-    task_completed: bool
+    closed: bool = False            # 到达成功终态（不保证业务目标达成）
+    goal_achieved: bool = False     # 成功终态 + 目标工具已成功调用
     violations: list[str] = Field(default_factory=list)
 
 
@@ -99,11 +100,18 @@ class TraceBuilder:
         self._trace.totals.latency_ms += step.latency_ms
         return step
 
-    def finalize(self, stage: str, task_completed: bool, violations: list[str] | None = None) -> Trace:
+    def finalize(
+        self,
+        stage: str,
+        closed: bool = False,
+        goal_achieved: bool = False,
+        violations: list[str] | None = None,
+    ) -> Trace:
         self._trace.ended_at = time.time()
         self._trace.outcome = TraceOutcome(
             stage=stage,
-            task_completed=task_completed,
+            closed=closed,
+            goal_achieved=goal_achieved,
             violations=violations or [],
         )
         return self._trace

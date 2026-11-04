@@ -55,7 +55,7 @@ def main() -> None:
 
     print("[5/5] 对话结束")
     print(f"      终态 stage: {result.stage}")
-    print(f"      任务完成: {result.task_completed}")
+    print(f"      结案: {result.closed}  目标达成: {result.goal_achieved}")
     print(f"      调用工具: {result.tool_calls}")
     print(f"      违规: {result.violations if result.violations else '无'}")
     print()

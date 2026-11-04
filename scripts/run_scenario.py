@@ -70,7 +70,7 @@ def run_scripted(agent: Agent, messages: list[str]) -> list[str]:
     result = session.result()
     print("\n" + "=" * 60)
     print(f"场景: {agent.config.scenario.display_name}")
-    print(f"终态: {result.stage}  任务完成: {result.task_completed}")
+    print(f"终态: {result.stage}  结案: {result.closed}  目标达成: {result.goal_achieved}")
     print(f"访问阶段: {' → '.join(visited)}")
     print(f"工具调用: {result.tool_calls}")
     print(f"违规: {result.violations or '无'}")

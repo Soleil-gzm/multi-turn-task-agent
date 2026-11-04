@@ -41,7 +41,7 @@
 
 | # | 参照做法 | 本项目对应 | 状态 | 行动项 |
 | --- | --- | --- | --- | --- |
-| C1 | Rule-based reward：对比最终数据库状态与标注目标状态 | E4：oracle `expected_terminal` 与实际终态比对 | ✅ | v0 报告已产出；真实模型接入后重跑 |
+| C1 | Rule-based reward：对比最终数据库状态与标注目标状态 | E4：oracle `expected_terminal.stage` + `outcome` 与终态及目标工具调用比对 | ✅ | 已按四项口径拆分（业务目标达成 / 处置正确 / 结案 / 标签匹配），避免单一「完成率」混淆语义 |
 | C2 | **pass^k**：同一 case 连跑 k 次全通过的比例（稳定性，非 pass@k 的偶然命中） | R1 稳定性指标（定义已写入评测设计并注明出处） | ⬜ | 实现排入 Stretch：runner 支持 `--repeat k` 逐 case 聚合 |
 | C3 | LLM 扮演用户：有自己目标、会改变主意 | 对抗 persona 4 类（拖延/强硬/误导/试探），当前为规则化脚本 | ⬜ | W4 对抗增强时参照其 user simulator 设计：persona 目标 + 动态改主意 |
 | C4 | 领域政策以书面文档形式给 agent（条款化、可引用） | 知识库片段 `POL-{主题}-{序号}` + `query_policy` 检索 | ✅ | corpus.yaml 已按条款化组织；片段 id 可被 E2 引用比对 |

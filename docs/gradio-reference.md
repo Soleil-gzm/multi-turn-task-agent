@@ -242,7 +242,7 @@ Banner（复用 A3）
 | U2 | UI 骨架（已完成） | `python -m src.ui.app` 起服务；首页显示场景摘要 + 12 条转移 | U1 |
 | U3 | 在线对话（已完成） | 输入 → `session.send` 单轮 → 消息追加；状态条实时更新 `stage/round_no` | U2 |
 | U4 | Trace 面板（已完成） | 可展开查看每步 `type/tool/args/result`；可导出 JSON | U3 |
-| U5 | 评测页（已完成） | 读 `eval/reports/v0_baseline.json` 渲染六项指标 + 分层表；「运行 80 条评测」按钮可刷新 | U4 |
+| U5 | 评测页（已完成） | 读 `eval/reports/v0_baseline.json` 渲染四项终态口径 + 覆盖/矛盾/拒绝与分层表；「运行 80 条评测」按钮可刷新 | U4 |
 
 > 验收口径沿用项目惯例：一条命令起服务、一次完整对话到 `CLOSED`、trace 面板可见 14 步、退出后无残留临时文件。
 

@@ -43,6 +43,7 @@ class Transition(BaseModel):
 
 class StateMachine(BaseModel):
     stages: list[str]
+    success_stage: str = "CLOSED"
     escalate_to: str | None = None
     escalate_tool: str | None = None
     offer_states: dict[str, list[str]] = Field(default_factory=dict)

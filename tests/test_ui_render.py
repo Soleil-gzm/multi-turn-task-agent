@@ -87,10 +87,10 @@ class TestRenderHtml:
         assert "等待输入" in ui.status_html(None)
         html = ui.status_html(
             {"stage": "CLOSED", "round_no": 4, "offer_state": None,
-             "tool_count": 3, "violations": 0, "task_completed": True}
+             "tool_count": 3, "violations": 0, "closed": True, "goal_achieved": True}
         )
         assert "CLOSED" in html and "round" in html and ">4<" in html
-        assert "是" in html  # 任务完成
+        assert "是" in html  # 结案 / 目标达成
 
     def test_trace_table_rows(self):
         result = _agent().run(new_session_id(), ["你好", "合同号 HT-Y2026-012"])
@@ -102,7 +102,7 @@ class TestRenderHtml:
         builder = TraceBuilder(session_id="s_test")
         for _ in range(45):
             builder.add_step(type=StepType.LLM_CALL, input_tokens=1, output_tokens=1, latency_ms=1)
-        trace = builder.finalize(stage="NEGOTIATE", task_completed=False)
+        trace = builder.finalize(stage="NEGOTIATE", closed=False, goal_achieved=False)
         html = ui.trace_table_html(trace)
         assert "仅展示前 40 步" in html
         assert html.count("<tr>") == 41  # 表头 + 40 行
@@ -146,7 +146,7 @@ class TestSessionHelpers:
         assert summary["offer_state"] is None
         assert summary["tool_count"] == 3
         assert summary["violations"] == 0
-        assert summary["task_completed"] is True
+        assert summary["goal_achieved"] is True
 
     def test_turn_summary_negotiate_offer_state(self):
         result = _agent().run(new_session_id(), ["你好", "合同号 HT-Y2026-012"])
@@ -175,24 +175,27 @@ _REPORT = {
     "total_cases": 80,
     "pass_power_k": 1.0,
     "stage_match_rate": 1.0,
-    "task_completion_rate": 0.35,
+    "closed_rate": 0.35,
+    "handled_rate": 1.0,
+    "business_goal_rate": 1.0,
     "avg_tool_score": 0.8,
+    "signal": {"kind": "link_check", "oracle_same_source": True, "note": "mock"},
     "tool_coverage": {f"t{i}": 1 for i in range(6)},
     "untouched_tools": [],
     "contradiction": {"applicable": 6, "followed": 6, "rate": 1.0},
     "policy_refusal": {"applicable": 10, "followed": 10, "rate": 1.0},
     "by_layer": {
-        "core": {"count": 24, "stage_match_rate": 1.0, "avg_tool_score": 0.8},
-        "boundary": {"count": 16, "stage_match_rate": 1.0, "avg_tool_score": 0.8},
-        "adversarial": {"count": 40, "stage_match_rate": 1.0, "avg_tool_score": 0.8},
+        "core": {"count": 24, "stage_match_rate": 1.0, "business_goal_rate": 1.0, "avg_tool_score": 0.8},
+        "boundary": {"count": 16, "stage_match_rate": 1.0, "business_goal_rate": 1.0, "avg_tool_score": 0.8},
+        "adversarial": {"count": 40, "stage_match_rate": 1.0, "business_goal_rate": None, "avg_tool_score": 0.8},
     },
 }
 
 
 class TestEvalPage:
-    def test_metrics_contains_six_items(self):
+    def test_metrics_shows_three_different_verdicts(self):
         html = ui.metrics_html(_REPORT)
-        for label in ("终态匹配率", "任务完成率", "工具序列均分", "工具覆盖", "矛盾告知率", "超政策拒绝率"):
+        for label in ("业务目标达成率", "处置正确率", "正常结案率", "终态标签匹配率", "工具序列均分", "工具覆盖", "矛盾告知率", "超政策拒绝率"):
             assert label in html
         assert "100.0%" in html
         assert "35.0%" in html
@@ -209,7 +212,9 @@ class TestEvalPage:
     def test_metrics_handles_none_rate(self):
         report = {
             "stage_match_rate": 1.0,
-            "task_completion_rate": 1.0,
+            "closed_rate": 1.0,
+            "handled_rate": 1.0,
+            "business_goal_rate": 1.0,
             "avg_tool_score": 0.8,
             "tool_coverage": {"a": 1},
             "untouched_tools": ["b"],
@@ -233,7 +238,7 @@ class TestEvalPage:
 
     def test_eval_page_has_disclaimer(self):
         html = ui.eval_page_html(_REPORT)
-        assert "不代表模型能力" in html
+        assert "链路自洽性上限" in html
 
     def test_load_report_real_file(self):
         report = ui.load_report()

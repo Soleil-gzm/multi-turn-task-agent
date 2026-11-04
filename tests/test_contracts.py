@@ -441,7 +441,7 @@ class TestStateMachine:
             "session_start": True, "identity_verified": True,
             "amount_informed": True, "counter_offer": True,
             "counter_within_policy": True, "offer_accepted": True,
-            "promise_recorded": True, "round": 0,
+            "goal_tool_called": True, "round": 0,
         }
         # 逐步推进
         for _ in range(20):
@@ -538,9 +538,9 @@ class TestTwelveTransitions:
         assert nxt.offer_state is None
 
     def test_10_confirm_to_closed(self):
-        """CONFIRM → CLOSED when promise_recorded"""
+        """CONFIRM → CLOSED when goal_tool_called"""
         s = State(stage="CONFIRM", round_no=6)
-        assert self._apply(s, {"promise_recorded": True}).stage == "CLOSED"
+        assert self._apply(s, {"goal_tool_called": True}).stage == "CLOSED"
 
     def test_11_confirm_to_propose_when_withdraw(self):
         """CONFIRM → NEGOTIATE/propose when customer_withdraw"""
@@ -719,7 +719,7 @@ class TestAgentSessionIncremental:
         session.send(self.msgs[2])
         r4 = session.send(self.msgs[3])
         assert r4.stage == "CLOSED"
-        assert r4.ended is True and r4.task_completed is True
+        assert r4.ended is True and r4.goal_achieved is True
 
     def test_incremental_matches_batch(self):
         batch = self.agent.run(new_session_id(), self.msgs)
@@ -826,8 +826,8 @@ class TestC6Trace:
         b = TraceBuilder(session_id="s_test", case_id="c_test")
         b.add_step(type=StepType.LLM_CALL, input_tokens=100, output_tokens=50, latency_ms=10)
         b.add_step(type=StepType.TOOL_CALL, tool="query_receivable", latency_ms=5)
-        trace = b.finalize(stage="CLOSED", task_completed=True)
+        trace = b.finalize(stage="CLOSED", closed=True, goal_achieved=True)
         assert len(trace.steps) == 2
         assert trace.totals.llm_calls == 1
         assert trace.totals.tool_calls == 1
-        assert trace.outcome.task_completed is True
+        assert trace.outcome.goal_achieved is True

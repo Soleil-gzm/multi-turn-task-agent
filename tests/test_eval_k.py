@@ -6,7 +6,55 @@ from types import SimpleNamespace
 
 import pytest
 
-from src.eval.runner import summarize
+from src.eval.runner import _handled_correctly, summarize
+
+
+def test_closed_without_goal_tool_is_not_business_goal():
+    """口径回归：到达成功终态但目标工具未成功调用 = 结案，不是目标达成。"""
+    case = SimpleNamespace(
+        oracle=SimpleNamespace(
+            expected_terminal={"stage": "CLOSED", "outcome": "promise_recorded"}
+        )
+    )
+    closed_no_goal = SimpleNamespace(
+        stage="CLOSED", closed=True, goal_achieved=False, escalated=False
+    )
+    assert _handled_correctly(closed_no_goal, case) is False
+
+    closed_with_goal = SimpleNamespace(
+        stage="CLOSED", closed=True, goal_achieved=True, escalated=False
+    )
+    assert _handled_correctly(closed_with_goal, case) is True
+
+
+def test_correct_escalation_is_handled_but_not_business_goal():
+    """正确升级 = 处置正确；它不应进入业务目标达成率的分母或分子。"""
+    case = SimpleNamespace(
+        oracle=SimpleNamespace(
+            expected_terminal={"stage": "ESCALATED", "outcome": "escalated"}
+        )
+    )
+    escalated = SimpleNamespace(
+        stage="ESCALATED", closed=False, goal_achieved=False, escalated=True
+    )
+    assert _handled_correctly(escalated, case) is True
+
+
+def test_business_goal_rate_excludes_escalation_samples():
+    """达成率只统计应关单样本：正确升级的样本既不进分子也不进分母。"""
+    cases = [_case("A", "core"), _case("B", "adversarial")]
+    goal_trial = _trial(0, "A", "core", success=True)
+    esc_trial = _trial(0, "B", "adversarial", success=True)
+    goal_trial.update({"closed": True, "business_goal": True})
+    esc_trial.update({"closed": False, "business_goal": None})
+
+    report = summarize(cases, [goal_trial, esc_trial], k=1,
+                       model_meta={"model": "mock-llm", "provider": "mock"})
+
+    assert report["business_goal_rate"] == 1.0      # 仅 A 计入
+    assert report["handled_rate"] == 1.0            # A、B 都算处置正确
+    assert report["closed_rate"] == 0.5
+    assert report["signal"]["kind"] == "link_check"
 
 
 def _case(case_id: str, layer: str):
@@ -21,7 +69,9 @@ def _trial(run: int, case_id: str, layer: str, success: bool, tools=("query_rece
         "stage": "CLOSED" if success else "ESCALATED",
         "expected_stage": "CLOSED",
         "stage_match": success,
-        "task_completed": success,
+        "closed": success,
+        "handled": success,
+        "business_goal": success,
         "tool_score": 0.8 if success else 0.5,
         "tool_calls": list(tools),
         "violations": 0,

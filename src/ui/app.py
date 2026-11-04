@@ -178,7 +178,8 @@ def status_html(turn: dict[str, Any] | None) -> str:
         ("offer_state", turn.get("offer_state") or "—"),
         ("工具调用", turn.get("tool_count", 0)),
         ("违规", turn.get("violations", 0)),
-        ("任务完成", "是" if turn.get("task_completed") else "否"),
+        ("结案", "是" if turn.get("closed") else "否"),
+        ("目标达成", "是" if turn.get("goal_achieved") else "否"),
     ]
     body = "".join(f'<div class="mta-stat">{_esc(k)} <b>{_esc(v)}</b></div>' for k, v in cards)
     return f'<div class="mta-stats">{body}</div>'
@@ -264,7 +265,8 @@ def turn_summary(result, round_no: int | None = None) -> dict[str, Any]:
         "offer_state": offer,
         "tool_count": tool_count,
         "violations": len(result.violations),
-        "task_completed": result.task_completed,
+        "closed": result.closed,
+        "goal_achieved": result.goal_achieved,
     }
 
 
@@ -310,7 +312,7 @@ def _fmt_num(value: Any, digits: int = 2) -> str:
 
 
 def metrics_html(report: dict[str, Any] | None) -> str:
-    """六项指标卡：终态 / 完成率 / 工具均分 / 工具覆盖 / 矛盾告知 / 超政策拒绝。"""
+    """指标卡：目标达成 / 结案 / 终态标签匹配 / 工具均分 / 覆盖 / 矛盾告知 / 超政策拒绝。"""
     if not report:
         return (
             '<div class="mta-card"><div class="mta-card-title">评测报告</div>'
@@ -325,8 +327,10 @@ def metrics_html(report: dict[str, Any] | None) -> str:
     total_tools = len(coverage) + len(untouched)
 
     cards = [
-        ("终态匹配率", _fmt_pct(report.get("stage_match_rate"))),
-        ("任务完成率", _fmt_pct(report.get("task_completion_rate"))),
+        ("业务目标达成率", _fmt_pct(report.get("business_goal_rate"))),
+        ("处置正确率", _fmt_pct(report.get("handled_rate"))),
+        ("正常结案率", _fmt_pct(report.get("closed_rate"))),
+        ("终态标签匹配率", _fmt_pct(report.get("stage_match_rate"))),
         ("工具序列均分", _fmt_num(report.get("avg_tool_score"))),
         ("工具覆盖", f"{len(coverage)}/{total_tools}"),
         (
@@ -367,23 +371,31 @@ def layer_table_html(report: dict[str, Any] | None) -> str:
     rows = "".join(
         f"<tr><td>{_esc(layer)}</td><td>{_esc(s.get('count', '-'))}</td>"
         f"<td>{_esc(_fmt_pct(s.get('stage_match_rate')))}</td>"
+        f"<td>{_esc(_fmt_pct(s.get('business_goal_rate')))}</td>"
         f"<td>{_esc(_fmt_num(s.get('avg_tool_score')))}</td></tr>"
         for layer, s in by_layer.items()
     )
     return (
         '<div class="mta-trace"><table><thead><tr>'
-        "<th>layer</th><th>样本</th><th>终态匹配</th><th>工具均分</th>"
+        "<th>layer</th><th>样本</th><th>终态标签匹配</th><th>业务目标达成</th><th>工具均分</th>"
         f"</tr></thead><tbody>{rows}</tbody></table></div>"
     )
 
 
 def eval_page_html(report: dict[str, Any] | None) -> str:
     """评测页整体 HTML：指标卡 + 分层表 + 口径提醒。"""
-    note = (
-        '<div class="mta-card-item" style="margin:6px 0">'
-        "口径提醒：当前 model=mock-llm，数字只验证「评测集 → Agent → 指标 → 报告」链路，"
-        "不代表模型能力，也不进版本间 Δ 表。</div>"
-    )
+    signal = (report or {}).get("signal") or {}
+    if signal.get("kind") == "link_check":
+        note_text = (
+            "口径提醒：当前为 Mock 模型，与 oracle 同源（按脚本实现设计路径），"
+            "通过率是链路自洽性上限而非能力信号，不进版本间 Δ 表。"
+        )
+    else:
+        note_text = (
+            "口径提醒：目标达成率只统计「应关单」样本（应升级样本不计入分母）；"
+            "处置正确率把「正确升级」也算正确，两者不可混用。"
+        )
+    note = f'<div class="mta-card-item" style="margin:6px 0">{_esc(note_text)}</div>'
     return metrics_html(report) + layer_table_html(report) + note
 
 

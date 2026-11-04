@@ -10,6 +10,7 @@ goal:
 
 state_machine:
   stages: [INIT, IDENTIFY, NEGOTIATE, CONFIRM, CLOSED, ESCALATED]
+  success_stage: CLOSED
   escalate_to: ESCALATED
   escalate_tool: escalate
   offer_states:
@@ -44,7 +45,7 @@ state_machine:
       when: "offer_accepted"
     - from: CONFIRM
       to: CLOSED
-      when: "promise_recorded"
+      when: "goal_tool_called"
     - from: CONFIRM
       to: NEGOTIATE/propose
       when: "customer_withdraw"

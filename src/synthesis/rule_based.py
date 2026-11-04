@@ -82,7 +82,11 @@ def _oracle(
         "expected_tool_sequence": sequence,
         "expected_args": {"query_receivable": {"contract_no": contract_no}} if contract_no else {},
         "forbidden_actions": forbidden or FORBIDDEN_BASE,
-        "expected_terminal": {"stage": terminal_stage},
+        # outcome 是业务口径的判定依据：终态标签本身不代表目标达成
+        "expected_terminal": {
+            "stage": terminal_stage,
+            "outcome": "escalated" if terminal_stage == "ESCALATED" else "promise_recorded",
+        },
         "max_rounds": 15,
     }
 

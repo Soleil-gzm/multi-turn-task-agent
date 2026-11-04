@@ -27,13 +27,20 @@ from src.tools.registry import ToolRegistry
 
 @dataclass
 class AgentResult:
-    """批量运行结果（demo / eval 使用）。"""
+    """批量运行结果（demo / eval 使用）。
+
+    closed / goal_achieved 是两个不同口径：
+      - closed：到达成功终态（状态机层面结束）
+      - goal_achieved：成功终态 + 场景声明的目标工具（goal.on_success）已成功调用
+    """
 
     reply: str
     stage: str
     tool_calls: list[str]
     trace: Trace
-    task_completed: bool
+    closed: bool
+    goal_achieved: bool
+    escalated: bool
     violations: list[str] = field(default_factory=list)
     replies: list[str] = field(default_factory=list)
 
@@ -48,9 +55,11 @@ class TurnResult:
     offer_state: str | None
     tool_calls: list[str]          # 本轮调用的工具
     trace: Trace                   # 截至本轮的累计快照（含 outcome）
-    task_completed: bool
+    closed: bool
+    goal_achieved: bool
+    escalated: bool
     violations: list[str]          # 累计违规
-    ended: bool                    # 是否已到终态（CLOSED / ESCALATED）
+    ended: bool                    # 是否已到终态（成功 / 升级）
     new_steps: int                 # 本轮新增 trace 步数
 
 
@@ -152,7 +161,7 @@ class AgentSession:
             "counter_exceeds_policy": False,
             "counter_within_policy": False,
             "offer_accepted": False,
-            "promise_recorded": False,
+            "goal_tool_called": False,
             "customer_withdraw": False,
             "redline_hit": False,
             "customer_refuse": False,
@@ -196,12 +205,29 @@ class AgentSession:
         ]
         return self._snapshot(reply=self.last_reply, tool_calls=turn_tools, new_steps=new_steps)
 
+    def _signals(self) -> tuple[bool, bool, bool]:
+        """三个独立口径：closed / goal_achieved / escalated。
+
+        goal_achieved 不等于 closed：到达成功终态但没有调用目标工具（如只在口头确认后
+        直接走到 CLOSED）算结案、不算达成。目标工具由 `goal.on_success` 声明，
+        框架不内含业务工具名。
+        """
+        cfg = self.agent.config
+        stage = self.state.stage
+        closed = stage == cfg.state_machine.success_stage
+        escalated = bool(cfg.state_machine.escalate_to) and stage == cfg.state_machine.escalate_to
+        goal_tool = cfg.goal.on_success
+        goal_achieved = closed and (goal_tool is None or goal_tool in self.tool_names_called)
+        return closed, goal_achieved, escalated
+
     def result(self) -> AgentResult:
         """收尾：把累计 trace 定稿，返回与批量接口一致的 AgentResult。"""
         stage = self.state.stage
+        closed, goal_achieved, escalated = self._signals()
         trace = self.builder.finalize(
             stage=stage,
-            task_completed=stage == "CLOSED",
+            closed=closed,
+            goal_achieved=goal_achieved,
             violations=self.violations,
         )
         return AgentResult(
@@ -209,7 +235,9 @@ class AgentSession:
             stage=stage,
             tool_calls=self.tool_names_called,
             trace=trace,
-            task_completed=stage == "CLOSED",
+            closed=closed,
+            goal_achieved=goal_achieved,
+            escalated=escalated,
             violations=self.violations,
             replies=self.replies,
         )
@@ -217,10 +245,12 @@ class AgentSession:
     # -- 内部 -------------------------------------------------------------
     def _snapshot(self, reply: str, tool_calls: list[str], new_steps: int) -> TurnResult:
         stage = self.state.stage
+        closed, goal_achieved, escalated = self._signals()
         trace = self.builder.trace.model_copy(deep=True)
         trace.outcome = TraceOutcome(
             stage=stage,
-            task_completed=stage == "CLOSED",
+            closed=closed,
+            goal_achieved=goal_achieved,
             violations=list(self.violations),
         )
         return TurnResult(
@@ -230,7 +260,9 @@ class AgentSession:
             offer_state=self.state.offer_state,
             tool_calls=tool_calls,
             trace=trace,
-            task_completed=stage == "CLOSED",
+            closed=closed,
+            goal_achieved=goal_achieved,
+            escalated=escalated,
             violations=list(self.violations),
             ended=self.ended,
             new_steps=new_steps,
@@ -346,8 +378,8 @@ class AgentSession:
             elif name == "query_policy" and result.get("ok"):
                 # W1 简化：查了政策即认为方案在政策内
                 self.facts["counter_within_policy"] = True
-            elif name == "record_promise" and result.get("ok"):
-                self.facts["promise_recorded"] = True
+            elif agent.config.goal.on_success and name == agent.config.goal.on_success and result.get("ok"):
+                self.facts["goal_tool_called"] = True
 
             # 工具返回隔离（间接注入防护）
             safe_data = sanitize_tool_output(result.get("data"))

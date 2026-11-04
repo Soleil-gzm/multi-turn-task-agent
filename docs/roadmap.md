@@ -24,10 +24,11 @@
 - **矛盾数据告知**：`response.contradiction` 声明工具 / 字段 / 话术，循环内检测到两字段不一致即主动告知；评测新增「矛盾数据告知率」（k=3 池化当前 100%，18/18）
 - **超政策拒绝话术**：`response.policy_refusal` 声明抽取正则 / 对应 policy 字段 / 拒绝模板，超限时显式拒绝并给政策内替代；评测新增「超政策拒绝话术率」（k=3 池化当前 100%，30/30），重复超限计入 `policy_violation_attempt` 触发升级
 - **评测链路**：80 条 case 可加载、可评测、可出分层报告
+- **评测口径拆分（已完成）**：终态不再用单一「完成率」表述，拆为四项互不替代的口径——业务目标达成率（仅应关单样本，要求 `goal.on_success` 工具确实成功调用）/ 处置正确率（含正确升级）/ 正常结案率 / 终态标签匹配率；oracle 新增 `expected_terminal.outcome`，报告新增 `signal.kind`（Mock=link_check、真实模型=capability）。同时修掉 `task_completed = stage == "CLOSED"` 这个把「结案」当「达成」的旧定义
 - **W2 数据层**：话术表（39 条，YAML 唯一真源 + `make templates` 生成 xlsx，占位符三方一致校验入测试）+ policy 知识库（24 条片段：公开法规要点 + 虚构内部政策，BM25 检索已接入 `query_policy`）；160 个单测全绿
 - **W0 prior-art 对照**：[prior-art.md](prior-art.md)——三份参照（RiSAWOZ / ABCD / τ-bench）职责边界 + 14 条逐项对照清单（7 条 ✅ 已对齐、6 条 ⬜ 待核对带行动项、1 条不适用），含指标可比性边界声明与许可声明
 - **人工抽检 20 条**：20/20 通过（D1 20/20、D2 20/20、D3 18/18、D4 20/20）；P-01 ~ P-05 全部修复——P-05 通过 core 新增 `invoice_check` 子类型（4 条）+ Mock 发票路由补齐，报告新增「工具覆盖 6/6」维度防空转工具（见 [抽检记录](../eval/reports/manual_review_20.md)）
-- **G3 交互界面（已完成）**：Gradio 单页（对话 + 评测两个 Tab），`Agent.start/session.send` 会话级增量、Trace 面板与 JSON 导出、评测页读取 `v0_baseline.json` 渲染六项指标与 `k` / Pass^k；Gradio 6.31.0 已锁定，含构建与启动的端到端测试（见 [src/ui/app.py](../src/ui/app.py)、[gradio-reference.md](gradio-reference.md)）
+- **G3 交互界面（已完成）**：Gradio 单页（对话 + 评测两个 Tab），`Agent.start/session.send` 会话级增量、Trace 面板与 JSON 导出、评测页读取 `v0_baseline.json` 渲染四项终态口径 + 覆盖/矛盾/拒绝指标与 `k` / Pass^k；Gradio 6.31.0 已锁定，含构建与启动的端到端测试（见 [src/ui/app.py](../src/ui/app.py)、[gradio-reference.md](gradio-reference.md)）
 - **milktea 第二场景（已实现）**：`configs/scenarios/milktea.yaml` + `scenarios/milktea/`（3 个工具 + 演示 LLM）+ 通用运行器 `scripts/run_scenario.py`；实测 `INIT → GREET → IDENTIFY → OFFER → CONFIRM → CLOSED`，异常分支 `ESCALATED` 可触发，trace schema 与 receivables 一致。4 条硬标准全部通过（含 `grep src/` 零场景名，由单测固化）
 - **入口泛化（milktea 标准 2 收口）**：demo / ui / eval / retrieval / synthesis 改为配置发现（`default_scenario_path` / `dataset_dir`）与 `tools[].impl` 动态装配（`build_registry_from_config`）、LLM 工厂（`get_llm_client`）；`grep -R "milktea\|receivables" src/` 为 0，`python -m src.eval.runner` 退出码 0（工具覆盖 6/6）
 - **G2 真实模型接入 + k≥3 评测（已跑通）**：`OpenAICompatibleClient`（OpenAI / DeepSeek / Qwen / vLLM 兼容，凭证走 `MTA_LLM_*`，缺配置 fail-fast）、Agent 工具调用消息协议修正（assistant `tool_calls` → `tool`）、runner 支持 `--k`（默认 3）与 `--limit`（冒烟）、`Pass^k` / `Pass@1` 与 mean ± std；Mock k=3 报告 Pass^3 100%、240 次试验；真实模型 `deepseek-flash` k=1 core 16 条冒烟：终态匹配 81.2%、工具覆盖 6/6、矛盾告知 3/3（见 `eval/reports/v1_smoke_k1.json`）
@@ -38,7 +39,7 @@
 
 | # | 优先级 | 工作量 | 依赖 | 目标 | 实现路径 | 验收标准 |
 | --- | --- | --- | --- | --- | --- | --- |
-| T1 | P0 | M | — | 产出真实模型正式基线 `v1_real_k3`（80 条 × k=3） | 后台执行 `python -m src.eval.runner --model openai_compat --k 3 --report eval/reports/v1_real_k3.json`，完成后把指标写入 README 评测表与 UI 可读报告 | 报告生成且字段完整（含 `model_meta` / `pass_power_k` / 分层指标）；README 与本文数字同步；`pytest` 仍全绿 |
+| T1 | P0 | M | — | 产出真实模型正式基线 `v1_real_k3`（80 条 × k=3） | 后台执行 `python -m src.eval.runner --model openai_compat --k 3 --report eval/reports/v1_real_k3.json`，完成后把指标写入 README 评测表与 UI 可读报告 | 报告生成且字段完整（含 `model_meta` / `signal.kind=capability` / `pass_power_k` / 四项终态口径）；README 与本文数字同步；`pytest` 仍全绿 |
 | T2 | P0 | S | — | 修复冒烟暴露的模型侧行为问题 | 在 `loop.py` 系统提示中强化两条：① 客户声明以账面为准后不得再以账实差异为由拖延或升级；② 涉及政策类工具前先完成身份核验（`query_receivable` 在前） | core 16 条 k=1 冒烟终态匹配 ≥ 15/16；`record_promise` 早于 `query_policy` 的顺序违规为 0；无新增回归（Mock k=3 仍 Pass^3 100%） |
 | T3 | P1 | L | T1 | C5 服务化：`POST /chat`、`GET /sessions/{id}`、`GET /trace/{trace_id}`、`POST /eval`、`GET /eval/{task_id}`，SQLite 持久化 + 幂等 + `docker compose up` | 在 `src/services/` 实现 FastAPI 路由（复用 `Agent.start/session.send` 与 `eval.runner.main`），会话与 trace 落 SQLite，`POST /chat` 幂等键去重 | 换机器一条命令（`docker compose up`）起服务并完成一次多轮对话；`POST /eval` 异步执行可查状态；契约状态 C5 升为「部分实现」 |
 | T4 | P1 | M | T1、T2 | 真实模型对抗层验证：40 条 adversarial 产出注入拦截率 | runner 增加注入拦截判定（模型未执行越权指令且未泄露政策外信息），对 injection / indirect_injection 标签用例统计 | 报告含 `injection_block_rate`（8 条注入样本，含 2 条间接）；README 评测表「注入拦截率」由「未采集」变为真实数字 |

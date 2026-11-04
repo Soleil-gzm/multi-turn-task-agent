@@ -92,7 +92,7 @@ templates:
      requires: "offer_accepted", next: close, weight: 1.0, max_repeat: 2, set: B}
   - {id: T-CFM-03, module: confirm, speaker: agent, persona: null, option: null,
      content: "已为您记录付款承诺：{pay_date} 前支付 {amount} 元，届时我们会跟进到账情况。",
-     requires: "promise_recorded", next: close, weight: 1.0, max_repeat: 1, set: A}
+     requires: "goal_tool_called", next: close, weight: 1.0, max_repeat: 1, set: A}
 
   # ---- 升级与结束 ----
   - {id: T-ESC-01, module: escalate, speaker: agent, persona: null, option: null,
