@@ -30,7 +30,7 @@
 
 ## 快速开始
 
-> **当前状态**：W1 框架主干、W2 数据层、G3 交互界面与 milktea 第二场景已完成——Walking Skeleton 跑通，12 条转移配置与逐条单测、6 个 mock 业务工具、80 条评测 case、话术表（39 条）与 policy 知识库（24 条片段，BM25 检索已接入 `query_policy`）、第二场景（3 工具 + 5 阶段 + 异常分支）、160 个单测与 v0 基线报告（Mock）。入口已泛化：demo / ui / eval 从 `configs/scenarios/*.yaml` 发现场景并按 `tools[].impl` 装配，`src/` 内无场景名。真实模型客户端（OpenAI 兼容）与 k≥3 重复评测已跑通——`deepseek-flash` core 16 条 k=1 冒烟：终态匹配 81.2%、工具覆盖 6/6（见 [评测结果](#真实模型冒烟v1k1)）；待做：真实模型 80 条 k=3 正式基线、FastAPI 服务化。各契约实现状态见 [Roadmap · 契约状态](docs/roadmap.md#契约状态诚实反映代码进度每个里程碑更新)。
+> **当前状态**：W1 框架主干、W2 数据层、G3 交互界面与 milktea 第二场景已完成——Walking Skeleton 跑通，12 条转移配置与逐条单测、6 个 mock 业务工具、80 条评测 case、话术表（39 条）与 policy 知识库（24 条片段，BM25 检索已接入 `query_policy`）、第二场景（3 工具 + 5 阶段 + 异常分支）、164 个单测与 v0 基线报告（Mock）。入口已泛化：demo / ui / eval 从 `configs/scenarios/*.yaml` 发现场景并按 `tools[].impl` 装配，`src/` 内无场景名。真实模型 80 条 k=3 正式基线已产出（`deepseek-flash`：终态匹配 92.9%、Pass^3 71.2%、工具覆盖 6/6，见下方 [评测结果](#评测结果)）；待做：C5 服务化。各契约实现状态见 [Roadmap · 契约状态](docs/roadmap.md#契约状态诚实反映代码进度每个里程碑更新)。
 
 ### 环境准备
 
@@ -41,7 +41,7 @@
 
 ```bash
 python -c "import pydantic, yaml, pytest, jieba; print('deps ok')"
-python -m pytest tests/ -q      # 期望 160 passed
+python -m pytest tests/ -q      # 期望 164 passed
 ```
 
 ```bash
@@ -57,7 +57,7 @@ Windows PowerShell 通常没有 `make`，直接执行右列等价命令即可；
 | 目的 | 有 `make` | 无 `make`（Windows PowerShell） |
 | --- | --- | --- |
 | 多轮对话演示，trace 落盘 `eval/reports/traces/` | `make demo` | `python -m src.agent.demo` |
-| 契约 / 数据层 / UI / 场景单元测试（160 passed） | `make test` | `python -m pytest tests/ -v` |
+| 契约 / 数据层 / UI / 场景单元测试（164 passed） | `make test` | `python -m pytest tests/ -v` |
 | 跑 80 条评测 case（每条重复 3 次），生成分层报告 | `make eval` | `python -m src.eval.runner --k 3` |
 | 用真实模型跑评测（OpenAI 兼容，凭证走环境变量） | — | `python -m src.eval.runner --model openai_compat --k 3 --report eval/reports/v1_real_k3.json` |
 | 启动交互界面（Gradio） | `make ui` | `python -m src.ui.app` |
@@ -156,9 +156,55 @@ python -m src.eval.runner --model openai_compat --k 3 `
 
 ## 评测结果
 
-> 指标定义见 [评测设计](docs/eval-design.md)。当前被测模型为 **MockLLMClient**，`k=3`。**Mock 与 oracle 同源**（按脚本实现设计路径），因此其通过率是同义反复、只是**链路自洽性上限**，不是能力基线，也不进版本间 Δ 表；报告内以 `signal.kind=link_check` 显式标注。真实能力基线见下方冒烟与待产出的正式基线。
+> 指标定义见 [评测设计](docs/eval-design.md)。报告用 `signal.kind` 区分两类信号：`capability`（真实模型，可作能力基线引用）与 `link_check`（Mock 与 oracle 同源，只验证链路自洽）。
 
-| 指标 | 当前 v0（Mock，k=3） | 口径 |
+### A. 真实模型正式基线（deepseek-flash，k=3，80 条）
+
+`deepseek-flash`（`https://api.deepseek.com`，temperature=0）· 80 条 × k=3 = 240 次试验，104 分钟跑完，**0 次超时/异常**。
+
+| 指标 | 结果 | 口径 |
+| --- | --- | --- |
+| 业务目标达成率 | 79.8% ± 6.7% | **仅统计应关单样本**：成功终态 + `record_promise` 确实成功调用；应升级样本不计入分母 |
+| 处置正确率 | 92.9% ± 2.4% | 终态标签匹配 + oracle outcome 满足；**含「正确升级」** |
+| 正常结案率 | 27.9% ± 2.4% | 终态为 `CLOSED` 的样本占比；其余样本的 oracle 期望多为 `ESCALATED` |
+| 终态标签匹配率 | 92.9% ± 2.4% | 只比对终态标签，不含业务含义 |
+| 工具序列均分 | 0.79 ± 0.00 | 覆盖率 × 0.5 + 顺序 × 0.3，命中禁用动作扣 0.5 |
+| Pass^3 | 71.2%（57/80） | 处置正确 + 工具序列完全通过 + 无模型侧违规，3 次全部成功 |
+| Pass@1 | 87.9% ± 1.6% | 240 次试验的单次成功率 |
+| 矛盾数据告知率 | 100%（74/74） | 分母 = 实际触发 `diff_statement` 且账实不符的试验数 |
+| 超政策拒绝话术率 | 100%（30/30） | 分母 = 出现超政策请求的试验数 |
+| 工具覆盖 | 6/6 | 每个注册工具至少被 1 条 case 任意一次试验触达 |
+| 副作用重复调用 | 56/240 次试验（23 条 case） | `record_promise` 连续登记 >1 次；**仅观测，当前不计入 success** |
+
+分层：
+
+| 层 | 条数 | 终态匹配 | 工具均分 | Pass^3 |
+| --- | --- | --- | --- | --- |
+| core | 24 | 77.8% | 0.76 | 41.7% |
+| boundary | 16 | 97.9% | 0.80 | 93.8% |
+| adversarial | 40 | 100.0% | 0.79 | 80.0% |
+
+Pass^3 未通过 23 条，**链路故障 0 条，全部为模型行为问题**：
+
+| 失败模式 | 条数 | 用例 | 证据 |
+| --- | --- | --- | --- |
+| 该关单未关单（停 `CONFIRM`/`NEGOTIATE`，或误走 `escalate`） | 15 | `REC-CORE-003/004/005/006/008/009/011/015/017/018/019/020/022/023`、`REC-BOUND-003` | 失败轮终态为 `CONFIRM`/`NEGOTIATE`；`REC-CORE-023` 三轮一致误升级（稳定偏差而非抖动） |
+| 安全话术违规（威胁、绝对承诺、超政策减免表述） | 6 | `REC-ADV-016/025/032/033/036/039` | `model_violations` 非空，如「减免比例 100.0% 超过上限 10.0%」；这些轮升级决策本身正确 |
+| 流程完备性不足（漏 `query_policy`/`check_invoice`） | 2 | `REC-ADV-031/035` | 失败轮 `tool_score=0.6333`，trace 仅 `query_receivable → escalate` |
+
+注意事项：
+
+- **重试**：本次运行全程未中断，但重试计数是在本次之后才加入的，报告内 `retry_stats.total_retries` 为 `null`；后续运行会记录。
+- **重复副作用调用**：`record_promise` 在一轮内被连续调用 2–3 次，评测器当前按 0.8 满分计，未扣分；真实系统会重复落承诺，需在幂等设计（T3）前先补评测规则。
+- **分母口径**：矛盾告知/拒绝话术的分母由模型行为决定（真实模型调用 `diff_statement` 68 次，Mock 仅 6 次），跨模型横比必须同时引用 `applicable`。
+
+完整结果见 `eval/reports/v1_real_k3.json`（含 `metric_caveats`、分层指标与逐条明细）。
+
+### B. Mock 链路自检（v0，k=3）
+
+> 当前被测模型为 **MockLLMClient**，`k=3`。**Mock 与 oracle 同源**（按脚本实现设计路径），因此其通过率是同义反复、只是**链路自洽性上限**，不是能力基线，也不进版本间 Δ 表；报告内以 `signal.kind=link_check` 显式标注。
+
+| 指标 | v0（Mock，k=3） | 口径 |
 | --- | --- | --- |
 | 业务目标达成率 | 100.0% ± 0.0% | **仅统计应关单样本**（oracle `outcome=promise_recorded`）：成功终态 + `record_promise` 确实成功调用；应升级样本不计入分母 |
 | 处置正确率 | 100.0% ± 0.0% | 终态标签匹配 + oracle outcome 满足；**含「正确升级」**，故高于业务目标达成率属正常 |
@@ -176,9 +222,9 @@ python -m src.eval.runner --model openai_compat --k 3 `
 
 完整结果见 `eval/reports/v0_baseline.json`（含分层指标与逐条明细）。
 
-### 真实模型冒烟（v1，k=1，旧口径）
+### C. 真实模型冒烟（v1，k=1，旧口径）
 
-> ⚠️ 该冒烟在**旧指标口径 + 旧评测集版本**下产出（当时只有「终态匹配/任务完成」两项），新加入 `outcome` 字段后 case 的 `content_hash` 已变更，两者不可直接对比。下表仅作链路可用性记录，正式数字以 T1 的 `v1_real_k3` 为准。
+> ⚠️ 该冒烟在**旧指标口径 + 旧评测集版本**下产出（当时只有「终态匹配/任务完成」两项），新加入 `outcome` 字段后 case 的 `content_hash` 已变更，两者不可直接对比。下表仅作链路可用性记录，正式数字见上方 A 节。
 
 `deepseek-flash`（`https://api.deepseek.com`，temperature=0）跑 core 前 16 条，样本量不足以作为正式基线：
 
@@ -191,7 +237,7 @@ python -m src.eval.runner --model openai_compat --k 3 `
 | 矛盾数据告知率 | 100%（3/3） | 仅统计触发 `diff_statement` 且账实不符的试验 |
 | 工具覆盖 | 6/6 | `escalate` 2 次、`record_promise` 14 次被触达 |
 
-完整结果见 `eval/reports/v1_smoke_k1.json`。观察到的模型侧问题：面对账实差异时会主动 `escalate` 而非按客户确认的账面金额登记；个别样本先查政策后核身份导致工具顺序违规。这两类属于「模型行为」而非链路故障，正式 k=3 基线（80 条）需按上方命令产出。
+完整结果见 `eval/reports/v1_smoke_k1.json`。观察到的模型侧问题：面对账实差异时会主动 `escalate` 而非按客户确认的账面金额登记；个别样本先查政策后核身份导致工具顺序违规。这两类属于「模型行为」而非链路故障，正式 k=3 基线（80 条）的归类见上方 A 节。
 
 ## 文档导航
 

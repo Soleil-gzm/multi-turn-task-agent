@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import time
 from abc import ABC, abstractmethod
 from typing import Any
 
@@ -193,6 +194,8 @@ class OpenAICompatibleClient(LLMClient):
         self.timeout = timeout
         self.max_tokens = max_tokens
         self._client = http_client
+        # 累计重试次数，供评测报告回填「网络抖动是否被重试救回」
+        self.retry_count = 0
 
     @property
     def endpoint(self) -> str:
@@ -257,6 +260,43 @@ class OpenAICompatibleClient(LLMClient):
             "seed": self.seed,
         }
 
+    def _post_with_retry(self, body: dict[str, Any], headers: dict[str, str]) -> httpx.Response:
+        """POST /chat/completions，带有限重试。
+
+        长时间评测（数百次调用）中瞬时网络抖动（ConnectTimeout/ReadTimeout）或
+        限流（429）、网关错误（502/503/504）不应终止整轮基线；最多重试
+        `MTA_LLM_MAX_RETRIES`（默认 3）次，退避 2s/4s/8s。非可重试错误立即抛出。
+        """
+        try:
+            max_retries = max(0, int(os.environ.get("MTA_LLM_MAX_RETRIES", "3")))
+        except ValueError:
+            max_retries = 3
+        retryable_status = {429, 500, 502, 503, 504}
+        last_error: Exception | None = None
+
+        for attempt in range(max_retries + 1):
+            client = self._client or httpx.Client(timeout=self.timeout)
+            try:
+                resp = client.post(self.endpoint, json=body, headers=headers)
+            except httpx.HTTPError as e:
+                last_error = e
+                resp = None
+            finally:
+                if self._client is None:
+                    client.close()
+            if resp is not None and resp.status_code not in retryable_status:
+                return resp
+            if attempt >= max_retries:
+                if resp is not None:
+                    return resp  # 交给上层按 HTTP 错误处理
+                raise LLMError(
+                    f"模型请求失败（{self.endpoint}，重试 {max_retries} 次后仍失败）: {last_error}"
+                ) from last_error
+            self.retry_count += 1
+            time.sleep(2 ** (attempt + 1))
+
+        raise LLMError(f"模型请求失败（{self.endpoint}）: {last_error}")  # pragma: no cover
+
     def chat(
         self,
         messages: list[dict[str, Any]],
@@ -280,14 +320,7 @@ class OpenAICompatibleClient(LLMClient):
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
-        client = self._client or httpx.Client(timeout=self.timeout)
-        try:
-            resp = client.post(self.endpoint, json=body, headers=headers)
-        except httpx.HTTPError as e:
-            raise LLMError(f"模型请求失败（{self.endpoint}）: {e}") from e
-        finally:
-            if self._client is None:
-                client.close()
+        resp = self._post_with_retry(body, headers)
 
         if resp.status_code >= 400:
             raise LLMError(

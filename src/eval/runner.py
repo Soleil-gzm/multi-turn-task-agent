@@ -200,6 +200,16 @@ def evaluate_trial(agent: Agent, case, run: int) -> dict[str, Any]:
         and not tool.get("forbidden_hit", False)
     )
     success = bool(handled and tool_ok and not _model_side_violations(result))
+    # 副作用工具重复调用（如连续多次登记同一承诺）：当前不计入成功判定，仅作为观测指标，
+    # 避免同一工具的正常重查（query_receivable 等）被误判。工具名来自场景配置，不写死业务。
+    side_effect_tools = {
+        name
+        for name in (agent.config.goal.on_success, agent.config.state_machine.escalate_tool)
+        if name
+    }
+    duplicate_calls = sorted(
+        {name for name in side_effect_tools if result.tool_calls.count(name) > 1}
+    )
     return {
         "run": run,
         "case_id": case.case_id,
@@ -218,6 +228,7 @@ def evaluate_trial(agent: Agent, case, run: int) -> dict[str, Any]:
         "contradiction_followed": _contradiction_followed(config=agent.config, result=result),
         "policy_refusal_followed": _policy_refusal_followed(result),
         "success": success,
+        "duplicate_terminal_calls": duplicate_calls,
     }
 
 
@@ -356,6 +367,23 @@ def summarize(
     contradiction = _rate_block(trials, "contradiction_followed")
     policy_refusal = _rate_block(trials, "policy_refusal_followed")
 
+    # 副作用工具重复调用：只观测，不参与 success 判定（见 evaluate_trial 注释）
+    duplicate_trials = [t for t in trials if t.get("duplicate_terminal_calls")]
+    duplicate_terminal_calls = {
+        "trials_with_duplicates": len(duplicate_trials),
+        "total_trials": total_trials,
+        "cases": sorted({t["case_id"] for t in duplicate_trials}),
+        "tools": sorted({name for t in duplicate_trials for name in t["duplicate_terminal_calls"]}),
+    }
+
+    # 口径说明：这些指标的分母由模型行为决定，跨模型横比时必须连同分母一起引用
+    metric_caveats = [
+        "contradiction/policy_refusal 的分母是「模型实际触发了对应工具/规则」的试验数，"
+        "分母随模型行为变化，跨模型横比需同时引用 applicable",
+        "duplicate_terminal_calls 仅观测，不计入 success；query_receivable 等只读工具的重查不在此列",
+        "单次试验 success = 处置正确 + 工具序列完整 + 无模型侧违规（输入侧越权指令已由护栏拦截，不计为模型失败）",
+    ]
+
     untouched = sorted(registered - set(tool_coverage))
 
     # 信号类型：Mock 与 oracle 同源（按脚本实现设计路径），通过率是链路自洽性上限，
@@ -392,6 +420,8 @@ def summarize(
         "untouched_tools": untouched,
         "contradiction": contradiction,
         "policy_refusal": policy_refusal,
+        "duplicate_terminal_calls": duplicate_terminal_calls,
+        "metric_caveats": metric_caveats,
         "results": case_rows,
     }
 
@@ -437,11 +467,27 @@ def main(
     )
 
     trials: list[dict[str, Any]] = []
-    for run in range(k):
-        for case in cases:
-            trials.append(evaluate_trial(agent, case, run))
+    total_trials = len(cases) * k
+    stage_hits = 0
+    for done, (run, case) in enumerate(
+        ((run, case) for run in range(k) for case in cases), 1
+    ):
+        trial = evaluate_trial(agent, case, run)
+        trials.append(trial)
+        if trial["stage_match"]:
+            stage_hits += 1
+        # 长跑基线（真实模型数百次调用）需要可观测进度，每 10 次试验打印一行并 flush
+        if done % 10 == 0 or done == total_trials:
+            print(
+                f"[进度] {done}/{total_trials} 次试验（第 {run + 1}/{k} 轮）"
+                f" · 终态匹配 {stage_hits}/{done}"
+                f" · 当前 case {case.case_id}",
+                flush=True,
+            )
 
     report = summarize(cases, trials, k, model_meta)
+    # 网络抖动是否被重试救回：Mock 恒为 0；真实模型在长跑中可据此判断链路稳定度
+    report["retry_stats"] = {"total_retries": int(getattr(llm, "retry_count", 0))}
 
     print("=" * 70)
     print(f"{'layer':<12} {'count':<7} {'stage_match':<13} {'tool_score':<12} {'pass@1'}")

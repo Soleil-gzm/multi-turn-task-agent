@@ -98,12 +98,30 @@ def test_malformed_response_raises_llm_error():
         _client(handler).chat([{"role": "user", "content": "hi"}])
 
 
-def test_network_error_raises_llm_error():
+def test_network_error_raises_llm_error(monkeypatch):
+    monkeypatch.setattr("src.agent.llm.time.sleep", lambda _s: None)
+
     def handler(request: httpx.Request) -> httpx.Response:
         raise httpx.ConnectError("boom", request=request)
 
     with pytest.raises(LLMError, match="模型请求失败"):
         _client(handler).chat([{"role": "user", "content": "hi"}])
+
+
+def test_retry_recovers_transient_error(monkeypatch):
+    monkeypatch.setenv("MTA_LLM_MAX_RETRIES", "1")
+    monkeypatch.setattr("src.agent.llm.time.sleep", lambda _s: None)
+    calls = {"n": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise httpx.ConnectError("boom", request=request)
+        return httpx.Response(200, json={"choices": [{"message": {"content": "ok"}}]})
+
+    client = _client(handler)
+    assert client.chat([{"role": "user", "content": "hi"}])["content"] == "ok"
+    assert client.retry_count == 1
 
 
 def test_from_env_reads_config(monkeypatch):

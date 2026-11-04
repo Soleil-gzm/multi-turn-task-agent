@@ -23,7 +23,7 @@
 | 已装（本项目必需） | pydantic 2.14.2 / PyYAML 6.0.3 / pytest 9.2.0 / httpx 0.28.1 / fastapi 0.162.0 / uvicorn 0.54.0 / jieba 0.42.1 |
 | 已装（顺带可用） | openpyxl、**gradio 6.31.0** |
 | **缺失** | **pandas、numpy、tqdm**（参考项目合成链路需要，本项目不需要） |
-| 测试基线 | `pytest tests/ -q` → 160 passed（含 UI 构建与启动端到端测试） |
+| 测试基线 | `pytest tests/ -q` → 164 passed（含 UI 构建与启动端到端测试） |
 
 requirements 要求 `pydantic>=2.0 / pyyaml>=6.0 / pytest>=8.0 / httpx>=0.27 / fastapi>=0.110 / uvicorn>=0.27 / jieba>=0.42`，**全部满足**。
 
